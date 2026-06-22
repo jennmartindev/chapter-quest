@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import Logo from "./Logo";
 import {
   IconHome, IconCompass, IconGrid, IconBooks, IconUser, IconPalette,
   IconTarget, IconAward, IconUpload, IconMenu, IconClose, IconLogout,
@@ -74,8 +73,7 @@ export default function Shell({ initialTheme, children }: { initialTheme: string
       <div className="app" data-theme={theme}>
         <aside className={`sidebar${open ? " open" : ""}`}>
           <div className="brand">
-            <span className="mark"><Logo size={20} /></span>
-            <span className="bt"><b>Chapter Quest</b><span>reading challenges</span></span>
+            <span className="wm"><span className="de">Dog Ears</span><span className="dn"><i>&amp;</i> Dunes</span></span>
             <button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><IconClose size={18} /></button>
           </div>
           <nav className="nav">
@@ -95,7 +93,7 @@ export default function Shell({ initialTheme, children }: { initialTheme: string
         <div className="main">
           <header className="mtop">
             <button className="icon-btn" aria-label="Open menu" onClick={() => setOpen(true)}><IconMenu size={20} /></button>
-            <span className="mlogo"><span className="mark"><Logo size={18} /></span><b>Chapter Quest</b></span>
+            <span className="mlogo"><span className="wm sm"><span className="de">Dog Ears</span><span className="dn"><i>&amp;</i> Dunes</span></span></span>
           </header>
           <main className="viewport">{children}</main>
         </div>

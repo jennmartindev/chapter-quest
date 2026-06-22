@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import Logo from "./Logo";
 import { IconMail } from "./icons";
 
 type View = "signin" | "signup" | "confirm";
@@ -98,8 +97,7 @@ export default function LoginForm() {
     <div className="auth-wrap" data-theme="sage">
       <div className="auth-card">
         <div className="brand">
-          <span className="mark"><Logo size={30} /></span>
-          <h1>Chapter Quest</h1>
+          <div className="wm wm-auth"><span className="de">Dog Ears</span><span className="dn"><i>&amp;</i> Dunes</span></div>
           <p className="sub">
             {view === "signin" ? "Welcome back to your reading challenges." : "Track every reading challenge in one place."}
           </p>
