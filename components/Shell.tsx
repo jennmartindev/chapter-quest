@@ -1,8 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Logo from "./Logo";
+import {
+  IconHome, IconCompass, IconGrid, IconBooks, IconUser, IconPalette,
+  IconTarget, IconAward, IconUpload, IconMenu, IconClose, IconLogout,
+} from "./icons";
 
 interface ShellCtx {
   theme: string;
@@ -17,24 +22,22 @@ export function useShell() {
 }
 
 const NAV = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/optimizer", label: "Read Next", icon: "✨" },
-  { href: "/boards", label: "Boards", icon: "▦", center: true },
-  { href: "/library", label: "Library", icon: "📚" },
-  { href: "/profile", label: "Profile", icon: "👤" },
+  { href: "/", label: "Home", Icon: IconHome },
+  { href: "/optimizer", label: "Read Next", Icon: IconCompass },
+  { href: "/boards", label: "Boards", Icon: IconGrid },
+  { href: "/library", label: "Library", Icon: IconBooks },
+  { href: "/challenges", label: "Challenges", Icon: IconTarget },
+  { href: "/import", label: "Import", Icon: IconUpload },
+  { href: "/achievements", label: "Achievements", Icon: IconAward },
+  { href: "/themes", label: "Themes", Icon: IconPalette },
+  { href: "/profile", label: "Profile", Icon: IconUser },
 ];
 
-export default function Shell({
-  initialTheme,
-  children,
-}: {
-  initialTheme: string;
-  children: React.ReactNode;
-}) {
+export default function Shell({ initialTheme, children }: { initialTheme: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [theme, setThemeState] = useState(initialTheme);
-  const [drawer, setDrawer] = useState(false);
+  const [open, setOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +45,9 @@ export default function Shell({
     if (saved && saved !== theme) setThemeState(saved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Close the mobile drawer whenever the route changes.
+  useEffect(() => { setOpen(false); }, [pathname]);
 
   function setTheme(t: string) {
     setThemeState(t);
@@ -52,74 +58,49 @@ export default function Shell({
       body: JSON.stringify({ theme: t }),
     }).catch(() => {});
   }
-
   function toast(msg: string) {
     setToastMsg(msg);
     window.setTimeout(() => setToastMsg(null), 2200);
   }
-
   async function signOut() {
     await fetch("/auth/signout", { method: "POST" });
     router.push("/login");
     router.refresh();
   }
-
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <Ctx.Provider value={{ theme, setTheme, toast }}>
       <div className="app" data-theme={theme}>
-        <header className="topbar">
-          <div className="logo">
-            <span className="seal">📖</span>
-            <span className="lt">
-              <b>Chapter Quest</b>
-              <span>your reading challenges</span>
-            </span>
+        <aside className={`sidebar${open ? " open" : ""}`}>
+          <div className="brand">
+            <span className="mark"><Logo size={20} /></span>
+            <span className="bt"><b>Chapter Quest</b><span>reading challenges</span></span>
+            <button className="icon-btn close-nav" aria-label="Close menu" onClick={() => setOpen(false)}><IconClose size={18} /></button>
           </div>
-          <span className="spacer" />
-          <Link href="/themes" className="icon-btn" aria-label="Themes">🎨</Link>
-          <button className="icon-btn" aria-label="Menu" onClick={() => setDrawer(true)}>☰</button>
-        </header>
+          <nav className="nav">
+            {NAV.map(({ href, label, Icon }) => (
+              <Link key={href} href={href} className={`nav-link${isActive(href) ? " active" : ""}`}>
+                <span className="ni"><Icon size={19} /></span>{label}
+              </Link>
+            ))}
+          </nav>
+          <button className="nav-link signout" onClick={signOut}>
+            <span className="ni"><IconLogout size={19} /></span>Sign out
+          </button>
+        </aside>
 
-        <main className="viewport">{children}</main>
+        {open && <div className="scrim" onClick={() => setOpen(false)} />}
 
-        <nav className="bottomnav">
-          {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={`nav-btn${n.center ? " center" : ""}${isActive(n.href) ? " active" : ""}`}>
-              <span className="gi">{n.icon}</span>
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="main">
+          <header className="mtop">
+            <button className="icon-btn" aria-label="Open menu" onClick={() => setOpen(true)}><IconMenu size={20} /></button>
+            <span className="mlogo"><span className="mark"><Logo size={18} /></span><b>Chapter Quest</b></span>
+          </header>
+          <main className="viewport">{children}</main>
+        </div>
 
-        {drawer && (
-          <>
-            <div className="scrim" onClick={() => setDrawer(false)} />
-            <aside className="drawer" onClick={() => setDrawer(false)}>
-              <div className="logo">
-                <span className="seal">📖</span>
-                <span className="lt"><b>Chapter Quest</b><span>your reading challenges</span></span>
-              </div>
-              <div className="tag">Manage your reading life from a magical little bookstore.</div>
-              <Link href="/optimizer"><span className="gi">✨</span> Cross-Challenge Optimizer</Link>
-              <Link href="/boards"><span className="gi">▦</span> Boards</Link>
-              <Link href="/library"><span className="gi">📚</span> Shared library</Link>
-              <Link href="/import"><span className="gi">📥</span> Import StoryGraph CSV</Link>
-              <Link href="/challenges"><span className="gi">🎯</span> My challenges</Link>
-              <div className="grp">Settings</div>
-              <Link href="/themes"><span className="gi">🎨</span> Theme settings</Link>
-              <Link href="/achievements"><span className="gi">🏅</span> Achievements</Link>
-              <button onClick={signOut} style={{ textAlign: "left" }}><span className="gi">⏏️</span> Sign out</button>
-            </aside>
-          </>
-        )}
-
-        {toastMsg && (
-          <div className="toast-host">
-            <div className="toast">{toastMsg}</div>
-          </div>
-        )}
+        {toastMsg && <div className="toast-host"><div className="toast">{toastMsg}</div></div>}
       </div>
     </Ctx.Provider>
   );

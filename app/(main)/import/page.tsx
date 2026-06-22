@@ -90,7 +90,7 @@ export default function ImportPage() {
 
       <div className="card" style={{ padding: 18 }}>
         <label className="btn ghost" style={{ display: "block", cursor: "pointer", marginBottom: 12 }}>
-          {fileName ? `📄 ${fileName}` : "Choose CSV file…"}
+          {fileName ? fileName : "Choose CSV file…"}
           <input type="file" accept=".csv,text/csv" onChange={onFile} style={{ display: "none" }} />
         </label>
         <button className="btn primary" style={{ width: "100%" }} onClick={run} disabled={busy || !csv}>
@@ -101,7 +101,7 @@ export default function ImportPage() {
 
       {result && (
         <div className="card" style={{ padding: 18, marginTop: 14 }}>
-          <h2 style={{ fontSize: 17, marginBottom: 10 }}>Imported 🎉</h2>
+          <h2 style={{ fontSize: 17, marginBottom: 10 }}>Imported</h2>
           <div className="stat-row" style={{ marginTop: 0 }}>
             <div className="stat"><div className="n">{result.imported}</div><div className="l">Books added</div></div>
             <div className="stat"><div className="n">{result.suggested}</div><div className="l">Squares suggested</div></div>
@@ -113,7 +113,7 @@ export default function ImportPage() {
       {/* Enrichment status (Option B) */}
       {(enriching || prog || (pending ?? 0) > 0) && (
         <div className="card" style={{ padding: 18, marginTop: 14 }}>
-          <h2 style={{ fontSize: 16, marginBottom: 6 }}>📖 Page counts &amp; publish years</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 6 }}>Page counts &amp; publish years</h2>
           {enriching && prog ? (
             <>
               <p className="muted" style={{ fontSize: 12, margin: "0 0 10px" }}>
@@ -131,7 +131,7 @@ export default function ImportPage() {
               </button>
             </>
           ) : (
-            <p className="muted" style={{ fontSize: 12, margin: 0 }}>All caught up — every ISBN has been looked up. ✓</p>
+            <p className="muted" style={{ fontSize: 12, margin: 0 }}>All caught up — every ISBN has been looked up.</p>
           )}
         </div>
       )}
@@ -141,7 +141,7 @@ export default function ImportPage() {
       )}
 
       <div className="overlap" style={{ marginTop: 18 }}>
-        🔒 Your CSV becomes your own private library (row-level security). ~89% of a typical export has a real ISBN, so most books get page counts &amp; years automatically (audiobooks use an ASIN, so those stay manual). Title-based guesses and metadata matches are saved as <i>suggestions</i> you confirm on each square.
+        Your CSV becomes your own private library (row-level security). ~89% of a typical export has a real ISBN, so most books get page counts &amp; years automatically (audiobooks use an ASIN, so those stay manual). Title-based guesses and metadata matches are saved as <i>suggestions</i> you confirm on each square.
       </div>
     </>
   );

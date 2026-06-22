@@ -45,10 +45,10 @@ export default function SquareDetail(props: {
 
   const dipHint =
     props.dipCount > 0
-      ? `🤹 Double-dip: ${props.dipCount} book${props.dipCount > 1 ? "s" : ""} here also fill a square in another challenge.`
+      ? `Double-dip: ${props.dipCount} book${props.dipCount > 1 ? "s" : ""} here also fill a square in another challenge.`
       : props.maxPerBook > 1
-      ? "💡 Double-dip: in this challenge a book here can also fill one other square."
-      : "ℹ️ On this card, one book fills exactly one square.";
+      ? "Double-dip: in this challenge a book here can also fill one other square."
+      : "On this card, one book fills exactly one square.";
 
   return (
     <>

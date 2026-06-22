@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadEverything, buildOptimizerInputs, getProfile } from "@/lib/data";
 import { rankBooks } from "@/lib/optimizer";
 import { challengeStatus, fmtDate, overlapWindow } from "@/lib/format";
+import { IconFlame, IconGrid, IconLayers } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,9 @@ export default async function HomePage() {
       <h1 className="greet">Good evening, {firstName}</h1>
 
       <div className="stat-row">
-        <div className="stat"><div className="e">🔥</div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
-        <div className="stat"><div className="e">▦</div><div className="n">{squaresDone}<small>/{squaresTotal}</small></div><div className="l">Squares done</div></div>
-        <div className="stat"><div className="e">🤹</div><div className="n">{dips}</div><div className="l">Multi-challenge picks</div></div>
+        <div className="stat"><div className="e"><IconFlame size={18} /></div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
+        <div className="stat"><div className="e"><IconGrid size={18} /></div><div className="n">{squaresDone}<small>/{squaresTotal}</small></div><div className="l">Squares done</div></div>
+        <div className="stat"><div className="e"><IconLayers size={18} /></div><div className="n">{dips}</div><div className="l">Multi-challenge picks</div></div>
       </div>
 
       {top ? (
@@ -69,7 +70,7 @@ export default async function HomePage() {
 
       {overlap && (
         <div className="overlap">
-          📅 <b>Your challenges overlap {fmtDate(overlap.start)} – {fmtDate(overlap.end)}.</b> A book read inside the overlap can count for both — that&apos;s where the optimizer earns its keep.
+          <b>Your challenges overlap {fmtDate(overlap.start)} – {fmtDate(overlap.end)}.</b> A book read inside the overlap can count for both — that&apos;s where the optimizer earns its keep.
         </div>
       )}
 

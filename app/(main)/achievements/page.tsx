@@ -1,4 +1,5 @@
 import { loadEverything } from "@/lib/data";
+import { IconBooks, IconCheck, IconLayers, IconGrid, IconAward } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,14 @@ export default async function AchievementsPage() {
   const totalLogged = load.bookSquares.filter((r) => r.status === "logged").length;
 
   const list = [
-    { i: "📖", t: "First Book Logged", d: "Log your first read", unlocked: anyLogged || anyBook },
-    { i: "✅", t: "First Full Square", d: "Complete a whole square", unlocked: anyDoneSquare },
-    { i: "🤹", t: "Double Dipper", d: "One book, two challenges", unlocked: anyDip },
-    { i: "🧭", t: "Two-Card Reader", d: "Active in 2 challenges", unlocked: twoCards },
-    { i: "💎", t: "Triple Threat", d: "One book clears 3 squares", unlocked: false },
-    { i: "🔟", t: "Ten Down", d: "Log 10 books", unlocked: totalLogged >= 10 },
-    { i: "🐉", t: "Book Dragon", d: "Read 50 books in a year", unlocked: false },
-    { i: "🏆", t: "Grand Slam", d: "Complete every active challenge", unlocked: false },
+    { Icon: IconBooks, t: "First Book Logged", d: "Log your first read", unlocked: anyLogged || anyBook },
+    { Icon: IconCheck, t: "First Full Square", d: "Complete a whole square", unlocked: anyDoneSquare },
+    { Icon: IconLayers, t: "Double Dipper", d: "One book, two challenges", unlocked: anyDip },
+    { Icon: IconGrid, t: "Two-Card Reader", d: "Active in 2 challenges", unlocked: twoCards },
+    { Icon: IconAward, t: "Triple Threat", d: "One book clears 3 squares", unlocked: false },
+    { Icon: IconCheck, t: "Ten Down", d: "Log 10 books", unlocked: totalLogged >= 10 },
+    { Icon: IconBooks, t: "Book Dragon", d: "Read 50 books in a year", unlocked: false },
+    { Icon: IconAward, t: "Grand Slam", d: "Complete every active challenge", unlocked: false },
   ];
 
   return (
@@ -38,7 +39,7 @@ export default async function AchievementsPage() {
       <div className="ach-grid">
         {list.map((a) => (
           <div className={`ach${a.unlocked ? "" : " locked"}`} key={a.t}>
-            <div className="medal">{a.i}</div>
+            <div className="medal"><a.Icon size={22} /></div>
             <h3>{a.t}</h3>
             <p>{a.d}</p>
           </div>

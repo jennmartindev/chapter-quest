@@ -34,7 +34,6 @@ export default async function LibraryPage() {
 
       {load.books.length === 0 ? (
         <div className="empty">
-          <div className="big">📚</div>
           Your library is empty.
           <div style={{ marginTop: 12 }}><Link href="/import" className="continue" style={{ display: "inline-block", padding: "10px 18px" }}>Import StoryGraph CSV</Link></div>
         </div>

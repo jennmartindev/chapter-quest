@@ -37,7 +37,7 @@ export default function OptimizerView({ items, tbrCount, dips }: { items: OptIte
           <div><b>{dips}</b><span>could clear 2+ challenges</span></div>
           <div><b>{items[0]?.total ?? 0}×</b><span>best squares from one book</span></div>
         </div>
-        <Link href="/import" className="import">⬆ Import / update StoryGraph TBR</Link>
+        <Link href="/import" className="import">Import / update StoryGraph TBR</Link>
       </div>
 
       <div className="filters">
