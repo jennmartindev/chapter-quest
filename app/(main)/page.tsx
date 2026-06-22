@@ -3,6 +3,7 @@ import { loadEverything, buildOptimizerInputs, getProfile } from "@/lib/data";
 import { rankBooks } from "@/lib/optimizer";
 import { challengeStatus, fmtDate, overlapWindow } from "@/lib/format";
 import { IconFlame, IconGrid, IconLayers } from "@/components/icons";
+import { DuneWave, BookStack, PawStub } from "@/components/illustrations";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,15 @@ export default async function HomePage() {
   const firstName = (profile?.display_name ?? "reader").split(" ")[0];
 
   return (
-    <>
-      <span className="eyebrow">Welcome back</span>
-      <h1 className="greet">Good evening, {firstName}</h1>
+    <div className="home">
+      <header className="home-mast">
+        <div className="mast-l">
+          <span className="eyebrow">Welcome back</span>
+          <h1 className="greet">Good evening, <em>{firstName}</em>.</h1>
+        </div>
+        <div className="dogblob"><PawStub size={34} /></div>
+      </header>
+      <DuneWave className="dune" />
 
       <div className="stat-row">
         <div className="stat"><div className="e"><IconFlame size={18} /></div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
@@ -60,11 +67,14 @@ export default async function HomePage() {
           <Link href="/optimizer" className="cta">Open the TBR Optimizer →</Link>
         </div>
       ) : (
-        <div className="hero">
-          <div className="kicker">Read this next</div>
-          <h2>Import your TBR to get picks</h2>
-          <p>Once your to-read list is in, this card tells you the single book that clears the most squares across all your challenges.</p>
-          <Link href="/import" className="cta">Import StoryGraph CSV →</Link>
+        <div className="hero hero-empty">
+          <div className="hero-illo"><BookStack size={96} /></div>
+          <div className="hero-body">
+            <div className="kicker">Read this next</div>
+            <h2>Import your TBR to get picks</h2>
+            <p>Once your to-read list is in, this card tells you the single book that clears the most squares across all your challenges.</p>
+            <Link href="/import" className="cta">Import StoryGraph CSV →</Link>
+          </div>
         </div>
       )}
 
@@ -119,6 +129,6 @@ export default async function HomePage() {
 
       <Link href="/optimizer" className="continue" style={{ display: "block", textAlign: "center" }}>What should I read next? →</Link>
       <p className="board-tip">Tip: import your StoryGraph export to fill this with your real books.</p>
-    </>
+    </div>
   );
 }
