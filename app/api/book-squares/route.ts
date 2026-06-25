@@ -10,10 +10,12 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { book_id, square_id, why } = await request.json().catch(() => ({}));
+  const { book_id, square_id, why, status } = await request.json().catch(() => ({}));
   if (!book_id || !square_id) {
     return NextResponse.json({ error: "book_id and square_id required" }, { status: 400 });
   }
+  // "planned" = assigned/in-progress; "logged" = read & counts as complete.
+  const st = status === "logged" ? "logged" : "planned";
 
   // Derive the challenge from the square (and confirm the user owns it via RLS).
   const { data: sq, error: sqErr } = await supabase
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
       square_id,
       challenge_id: sq.challenge_id,
       why: why ?? null,
-      status: "logged",
+      status: st,
     },
     { onConflict: "book_id,square_id" }
   );

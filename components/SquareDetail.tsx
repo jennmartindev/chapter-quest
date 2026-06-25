@@ -37,16 +37,16 @@ export default function SquareDetail(props: {
 
   const shown = q.trim() ? results.slice(0, 30) : results.slice(0, 12);
 
-  async function assign(book_id: string, title: string) {
+  async function assign(book_id: string, title: string, status: "planned" | "logged") {
     setBusy(book_id);
     const res = await fetch("/api/book-squares", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ book_id, square_id: props.squareId }),
+      body: JSON.stringify({ book_id, square_id: props.squareId, status }),
     });
     setBusy(null);
-    if (res.ok) { toast(`Added “${title}”`); router.refresh(); }
-    else toast("Couldn't add that — try again");
+    if (res.ok) { toast(status === "logged" ? `Marked “${title}” read` : `Added “${title}” — in progress`); router.refresh(); }
+    else toast("Couldn't update — try again");
   }
   async function remove(book_id: string) {
     setBusy(book_id);
@@ -91,9 +91,15 @@ export default function SquareDetail(props: {
               <div className="cover" style={{ background: `linear-gradient(160deg, ${b.g1}, ${b.g2})` }} />
               <div className="mt">
                 <b>{b.title}</b>
-                <span>{b.alsoFills.length ? "also fills: " + b.alsoFills.map((a) => `${a.name} (${a.tag})`).join(" · ") : "fills this square"}</span>
+                <span>
+                  {b.status === "logged" ? "Read · complete" : "Assigned · not read yet"}
+                  {b.alsoFills.length ? " · also: " + b.alsoFills.map((a) => a.name).join(", ") : ""}
+                </span>
               </div>
-              <button className="add" disabled={busy === b.id} onClick={() => remove(b.id)}>Remove</button>
+              <button className="add ghost" disabled={busy === b.id} onClick={() => assign(b.id, b.title, b.status === "logged" ? "planned" : "logged")}>
+                {b.status === "logged" ? "Mark unread" : "Mark read"}
+              </button>
+              <button className="add ghost" disabled={busy === b.id} onClick={() => remove(b.id)}>Remove</button>
             </div>
           ))}
         </>
@@ -124,7 +130,7 @@ export default function SquareDetail(props: {
                 <span>{b.author ?? ""}</span>
               </div>
               <span className={`bstat s-${b.status}`}>{STATUS_LABEL[b.status] ?? b.status}</span>
-              <button className="add" disabled={busy === b.id} onClick={() => assign(b.id, b.title)}>Add</button>
+              <button className="add" disabled={busy === b.id} onClick={() => assign(b.id, b.title, b.status === "read" ? "logged" : "planned")}>Add</button>
             </div>
           ))}
           {!q.trim() && results.length > shown.length && (

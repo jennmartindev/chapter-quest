@@ -182,8 +182,10 @@ input{ font-family:inherit; }
 .ruleband b{ color:var(--accent-deep); }
 .legend{ display:flex; gap:14px; margin:14px 2px 16px; font-size:10px; color:var(--text-soft); flex-wrap:wrap; }
 .legend span{ display:inline-flex; align-items:center; gap:5px; }
-.dot{ width:10px;height:10px;border-radius:3px; border:1px solid var(--line); }
-.dot.empty{ background:var(--card-2); } .dot.partial{ background:var(--gold-soft); border-color:var(--gold); } .dot.done{ background:var(--accent); border-color:var(--accent); } .dot.dip{ background:var(--gold); border:none; border-radius:50%; }
+.legend .sw{ width:12px; height:12px; border-radius:4px; flex:none; display:inline-block; border:1px solid var(--line); }
+.sw-empty{ background:var(--card-2); }
+.sw-part{ background:var(--gold-soft); border-color:var(--gold); }
+.sw-done{ background:var(--accent); border-color:var(--accent); }
 
 .bingo{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
 .sq{ position:relative; aspect-ratio:1/1; border-radius:12px; background:var(--card-2); border:1px solid var(--line); padding:9px 8px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; text-align:left; overflow:hidden; transition:transform .12s ease, box-shadow .2s ease, border-color .2s ease; box-shadow:inset 0 1px 2px rgba(46,64,71,.05); }
@@ -196,9 +198,11 @@ input{ font-family:inherit; }
 .sq.done{ background:var(--accent); border-color:var(--accent); color:var(--done-ink); box-shadow:none; }
 .sq.done .nm{ color:var(--done-ink); }
 .sq.done .bk{ color:rgba(255,255,255,.92); }
-.sq.done::after{ content:""; position:absolute; top:0; right:0; width:0; height:0; border-top:18px solid var(--gold); border-left:18px solid transparent; border-top-right-radius:12px; filter:drop-shadow(-1px 1px 1px rgba(46,64,71,.3)); }
-.sq.dip::before{ content:""; position:absolute; top:6px; left:6px; width:6px; height:6px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 2px var(--card-2); z-index:1; }
-.sq.done.dip::before{ box-shadow:0 0 0 2px var(--accent); }
+/* completed squares "dog-ear" — a softly folded page corner */
+.sq.done::after{ content:""; position:absolute; top:0; right:0; width:0; height:0;
+  border-top:22px solid var(--card); border-left:22px solid transparent; border-top-right-radius:12px;
+  filter:drop-shadow(-1.5px 1.5px 1px rgba(46,64,71,.4)); }
+.sq.partial .bk, .sq.partial .cnt{ color:var(--accent-deep); }
 @media (max-width:600px){ .sq .nm{ font-size:9.5px; -webkit-line-clamp:3; } .sq .bk{ display:none; } .board-card{ padding:15px; } }
 
 /* Prompt detail */
@@ -221,6 +225,8 @@ input{ font-family:inherit; }
 .match .add{ font-size:11px; font-weight:700; color:var(--done-ink); border:none; padding:7px 13px; border-radius:18px; background:var(--accent); flex:none; }
 .match .add:hover{ background:var(--accent-deep); }
 .match .add:disabled{ opacity:.5; }
+.match .add.ghost{ background:transparent; color:var(--accent-deep); border:1px solid var(--line); }
+.match .add.ghost:hover{ background:var(--card-2); }
 .searchbar{ margin:0 0 12px; }
 .searchbar input{ width:100%; padding:12px 14px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:14px; }
 .searchbar input:focus{ outline:2px solid var(--accent); outline-offset:1px; }

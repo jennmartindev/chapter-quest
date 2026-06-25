@@ -11,21 +11,28 @@ const RULE_TEXT: Record<string, string> = {
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
 };
 
-type SquareBooks = Record<string, { title: string; g1: string; g2: string }>;
+type SquareBooks = Record<string, { title: string }>;
 
 export default function BoardsView({
   challenges,
-  dipSquareIds,
   squareBooks,
+  initialId,
 }: {
   challenges: ChallengeWithSquares[];
-  dipSquareIds: string[];
   squareBooks: SquareBooks;
+  initialId?: string;
 }) {
-  const [current, setCurrent] = useState(challenges[0]?.id);
+  const [current, setCurrent] = useState(initialId ?? challenges[0]?.id);
   const ch = challenges.find((c) => c.id === current) ?? challenges[0];
-  const dips = new Set(dipSquareIds);
   if (!ch) return <p className="empty">No challenges yet.</p>;
+
+  function pick(c: ChallengeWithSquares) {
+    setCurrent(c.id);
+    // Persist the open board in the URL so returning from a square keeps it.
+    if (typeof window !== "undefined" && c.template_key) {
+      window.history.replaceState(null, "", `/boards?c=${c.template_key}`);
+    }
+  }
 
   const rule = RULE_TEXT[ch.template_key ?? ""] ?? "";
   const pct = ch.total ? Math.round((ch.done / ch.total) * 100) : 0;
@@ -34,7 +41,7 @@ export default function BoardsView({
     <>
       <div className="chswitch">
         {challenges.map((c) => (
-          <button key={c.id} className={`chpill${c.id === current ? " on" : ""}`} onClick={() => setCurrent(c.id)}>
+          <button key={c.id} className={`chpill${c.id === current ? " on" : ""}`} onClick={() => pick(c)}>
             <span>{c.name}</span>
             <span className="s">{c.done} / {c.total} {c.unit}</span>
           </button>
@@ -52,23 +59,23 @@ export default function BoardsView({
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
 
         <div className="legend">
-          <span><i className="dot empty" /> Not started</span>
-          <span><i className="dot partial" /> In progress</span>
-          <span><i className="dot done" /> Complete</span>
-          <span><i className="dot dip" /> fills 2 challenges</span>
+          <span><i className="sw sw-empty" /> Not started</span>
+          <span><i className="sw sw-part" /> In progress</span>
+          <span><i className="sw sw-done" /> Complete</span>
         </div>
 
         <div className="bingo">
           {ch.squares.map((s) => {
             const done = s.logged >= s.need;
-            const partial = s.logged > 0 && !done;
-            const book = squareBooks[s.id];
-            const cls = `sq${done ? " done" : partial ? " partial" : ""}${dips.has(s.id) ? " dip" : ""}`;
+            const assigned = !!squareBooks[s.id];
+            const partial = assigned && !done;
+            const title = squareBooks[s.id]?.title;
+            const cls = `sq${done ? " done" : partial ? " partial" : ""}`;
             return (
               <Link key={s.id} href={`/square/${s.id}`} className={cls}>
                 <span className="nm">{s.name}</span>
-                {done && book ? (
-                  <span className="bk">{book.title}</span>
+                {(done || partial) && title ? (
+                  <span className="bk">{title}</span>
                 ) : (
                   <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
                 )}
