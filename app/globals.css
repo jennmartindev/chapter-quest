@@ -12,14 +12,15 @@
   --sans:var(--font-sans),ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r-lg:22px; --r-md:16px;
   --hrtag:#617E74; --rftag:#4B6B75;
+  --m1:#C89347; --m2:#C56B6B; --m3:#5E86A8; --m4:#8E7CC3; /* per-reader colors */
 }
-[data-theme="sage"]{ --ground:#F2E9D7; --ground-2:#EADFC8; --card:#FCF7EC; --card-2:#EFE6D0; --text:#2E4047; --text-soft:#71837C; --accent:#617E74; --accent-deep:#4C645B; --gold:#C89347; --gold-soft:#ECCCB2; --line:#DFD2B8; --done:#617E74; --done-ink:#FCF7EC; --shadow:rgba(46,64,71,.18); --frame:#2E4047; }
-[data-theme="pride"]{ --ground:#FBF4EC; --ground-2:#F3E8DB; --card:#FFFDF9; --card-2:#F4EADD; --text:#2B2436; --text-soft:#6B6076; --accent:#7C5BD6; --accent-deep:#5E3FB0; --gold:#E08A2B; --gold-soft:#F2C98C; --line:#E6D9CB; --done:#D14D8B; --done-ink:#fff; --shadow:rgba(60,40,90,.18); --frame:#3A2E50; }
-[data-theme="academia"]{ --ground:#211B15; --ground-2:#2A231B; --card:#2E261D; --card-2:#3A3026; --text:#ECE0CC; --text-soft:#B6A488; --accent:#B08A4E; --accent-deep:#8E6C36; --gold:#D6B26A; --gold-soft:#5A4A33; --line:#473B2C; --done:#B08A4E; --done-ink:#211B15; --shadow:rgba(0,0,0,.45); --frame:#171209; }
-[data-theme="enchanted"]{ --ground:#191E33; --ground-2:#212948; --card:#262E4E; --card-2:#313A60; --text:#EBE7FA; --text-soft:#A9A6CF; --accent:#9A86D8; --accent-deep:#7B66C2; --gold:#E0CB7C; --gold-soft:#4A4470; --line:#3A4267; --done:#9A86D8; --done-ink:#191E33; --shadow:rgba(8,6,28,.5); --frame:#0F1326; }
-[data-theme="autumn"]{ --ground:#F3E5D2; --ground-2:#EBD8BF; --card:#FBF1E2; --card-2:#EFDDC5; --text:#46291A; --text-soft:#8A6347; --accent:#C0612C; --accent-deep:#9E4A1E; --gold:#D39435; --gold-soft:#EBC68A; --line:#DFC6A6; --done:#C0612C; --done-ink:#FBF1E2; --shadow:rgba(70,41,26,.2); --frame:#3A2415; }
-[data-theme="pink"]{ --ground:#FBEEF2; --ground-2:#F6E0E8; --card:#FFF7FA; --card-2:#F8E4EC; --text:#4A2A38; --text-soft:#8C6072; --accent:#DB7AA0; --accent-deep:#C45A85; --gold:#D9A24B; --gold-soft:#F0D49A; --line:#EDD3DD; --done:#DB7AA0; --done-ink:#fff; --shadow:rgba(120,50,80,.16); --frame:#5A3346; }
-[data-theme="midnight"]{ --ground:#13182B; --ground-2:#1A2138; --card:#1F2742; --card-2:#293252; --text:#E3E8FA; --text-soft:#9AA3C8; --accent:#5E6FC4; --accent-deep:#46569E; --gold:#C9B26A; --gold-soft:#3D4366; --line:#323B5C; --done:#5E6FC4; --done-ink:#13182B; --shadow:rgba(4,8,24,.55); --frame:#0B0F1F; }
+[data-theme="sage"]{ --ground:#F2E9D7; --ground-2:#EADFC8; --card:#FCF7EC; --card-2:#EFE6D0; --text:#2E4047; --text-soft:#71837C; --accent:#617E74; --accent-deep:#4C645B; --gold:#C89347; --gold-soft:#ECCCB2; --line:#DFD2B8; --done:#617E74; --done-ink:#FCF7EC; --shadow:rgba(46,64,71,.18); --frame:#2E4047; --m1:#C89347; --m2:#C56B6B; --m3:#5E86A8; --m4:#8E7CC3; }
+[data-theme="pride"]{ --ground:#FBF4EC; --ground-2:#F3E8DB; --card:#FFFDF9; --card-2:#F4EADD; --text:#2B2436; --text-soft:#6B6076; --accent:#7C5BD6; --accent-deep:#5E3FB0; --gold:#E08A2B; --gold-soft:#F2C98C; --line:#E6D9CB; --done:#D14D8B; --done-ink:#fff; --shadow:rgba(60,40,90,.18); --frame:#3A2E50; --m1:#E0467E; --m2:#E08A2B; --m3:#3F9F6A; --m4:#3F7FD0; }
+[data-theme="academia"]{ --ground:#211B15; --ground-2:#2A231B; --card:#2E261D; --card-2:#3A3026; --text:#ECE0CC; --text-soft:#B6A488; --accent:#B08A4E; --accent-deep:#8E6C36; --gold:#D6B26A; --gold-soft:#5A4A33; --line:#473B2C; --done:#B08A4E; --done-ink:#211B15; --shadow:rgba(0,0,0,.45); --frame:#171209; --m1:#C99A5A; --m2:#B06A4F; --m3:#7E8FB0; --m4:#A07BB0; }
+[data-theme="enchanted"]{ --ground:#191E33; --ground-2:#212948; --card:#262E4E; --card-2:#313A60; --text:#EBE7FA; --text-soft:#A9A6CF; --accent:#9A86D8; --accent-deep:#7B66C2; --gold:#E0CB7C; --gold-soft:#4A4470; --line:#3A4267; --done:#9A86D8; --done-ink:#191E33; --shadow:rgba(8,6,28,.5); --frame:#0F1326; --m1:#E0CB7C; --m2:#C56B9A; --m3:#5FA6BC; --m4:#9AA0E0; }
+[data-theme="autumn"]{ --ground:#F3E5D2; --ground-2:#EBD8BF; --card:#FBF1E2; --card-2:#EFDDC5; --text:#46291A; --text-soft:#8A6347; --accent:#C0612C; --accent-deep:#9E4A1E; --gold:#D39435; --gold-soft:#EBC68A; --line:#DFC6A6; --done:#C0612C; --done-ink:#FBF1E2; --shadow:rgba(70,41,26,.2); --frame:#3A2415; --m1:#C8902F; --m2:#9C5A8C; --m3:#6F8F5A; --m4:#B0573F; }
+[data-theme="pink"]{ --ground:#FBEEF2; --ground-2:#F6E0E8; --card:#FFF7FA; --card-2:#F8E4EC; --text:#4A2A38; --text-soft:#8C6072; --accent:#DB7AA0; --accent-deep:#C45A85; --gold:#D9A24B; --gold-soft:#F0D49A; --line:#EDD3DD; --done:#DB7AA0; --done-ink:#fff; --shadow:rgba(120,50,80,.16); --frame:#5A3346; --m1:#D9A24B; --m2:#5E86A8; --m3:#8E7CC3; --m4:#6FA88C; }
+[data-theme="midnight"]{ --ground:#13182B; --ground-2:#1A2138; --card:#1F2742; --card-2:#293252; --text:#E3E8FA; --text-soft:#9AA3C8; --accent:#5E6FC4; --accent-deep:#46569E; --gold:#C9B26A; --gold-soft:#3D4366; --line:#323B5C; --done:#5E6FC4; --done-ink:#13182B; --shadow:rgba(4,8,24,.55); --frame:#0B0F1F; --m1:#C9B26A; --m2:#C56B9A; --m3:#5FA6A0; --m4:#8E8CD8; }
 
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; }
@@ -268,8 +269,8 @@ input{ font-family:inherit; }
 .lb-chip b{ background:var(--ground); border-radius:10px; padding:1px 7px; font-family:var(--serif); }
 .lb-chip.lead{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; }
 .lb-chip.lead b{ background:var(--gold); color:#2c220a; }
-/* one-person read → that person's colour fills the tile (desktop) */
-.sq.colored{ background:var(--ucolor); border-color:rgba(46,64,71,.16); }
+/* one-person read → soft tint + colored ring in that reader's theme colour */
+.sq.colored{ background:color-mix(in srgb, var(--ucolor) 22%, var(--card)); border-color:color-mix(in srgb, var(--ucolor) 55%, var(--line)); box-shadow:inset 0 0 0 2.5px var(--ucolor); }
 
 @media (max-width:600px){
   /* Books with a real cover: the cover fills the square; read-state is a

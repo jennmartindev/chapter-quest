@@ -11,8 +11,8 @@ const RULE_TEXT: Record<string, string> = {
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
 };
 
-// Per-person colors: owner first (yellow), then peach-pink, then more.
-const MEMBER_COLORS = ["#fff9c2", "#ffd5b3", "#cfe0d6", "#e6d3ec"];
+// Per-reader colors come from the active theme (--m1..--m4), so they always
+// harmonize with whatever theme is selected.
 type SquareBooks = Record<string, { title: string; cover: string | null }>;
 const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
@@ -39,7 +39,10 @@ export default function BoardsView({
   const rule = RULE_TEXT[ch.template_key ?? ""] ?? "";
   const pct = ch.total ? Math.round((ch.done / ch.total) * 100) : 0;
   const shared = ch.shared && ch.members.length > 0;
-  const colorOf = (uid: string) => MEMBER_COLORS[Math.max(0, ch.members.findIndex((m) => m.userId === uid)) % MEMBER_COLORS.length];
+  const colorOf = (uid: string) => {
+    const i = ch.members.findIndex((m) => m.userId === uid);
+    return `var(--m${Math.min(4, (i < 0 ? 0 : i) + 1)})`;
+  };
 
   const leaderboard = shared
     ? ch.members
@@ -74,7 +77,7 @@ export default function BoardsView({
             <span className="ml">Leaderboard</span>
             {leaderboard.map((m) => (
               <span key={m.userId} className={`lb-chip${m.done === topDone && topDone > 0 ? " lead" : ""}`}>
-                <i className="stamp sm" style={{ background: colorOf(m.userId), color: "#5a4a2a" }}>{initial(m.name)}</i>
+                <i className="stamp sm" style={{ background: "var(--card)", borderColor: colorOf(m.userId), borderWidth: 2, color: "var(--text)" }}>{initial(m.name)}</i>
                 {m.name}<b>{m.done}</b>
               </span>
             ))}
