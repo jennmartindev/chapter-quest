@@ -11,6 +11,8 @@ const RULE_TEXT: Record<string, string> = {
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
 };
 
+// Per-person colors: owner first (gold), then pink, then blue/purple for more.
+const MEMBER_COLORS = ["#C89347", "#C57B9A", "#6F8FB8", "#9C7CC2"];
 type SquareBooks = Record<string, { title: string; cover: string | null }>;
 const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
@@ -37,23 +39,14 @@ export default function BoardsView({
   const rule = RULE_TEXT[ch.template_key ?? ""] ?? "";
   const pct = ch.total ? Math.round((ch.done / ch.total) * 100) : 0;
   const shared = ch.shared && ch.members.length > 0;
+  const colorOf = (uid: string) => MEMBER_COLORS[Math.max(0, ch.members.findIndex((m) => m.userId === uid)) % MEMBER_COLORS.length];
 
   const leaderboard = shared
     ? ch.members
-        .map((m) => ({
-          ...m,
-          done: ch.squares.filter((s) => s.memberProgress?.find((p) => p.userId === m.userId)?.status === "done").length,
-        }))
+        .map((m) => ({ ...m, done: ch.squares.filter((s) => s.memberProgress?.find((p) => p.userId === m.userId)?.status === "done").length }))
         .sort((a, b) => b.done - a.done)
     : [];
   const topDone = leaderboard[0]?.done ?? 0;
-
-  const stamps = (s: ChallengeWithSquares["squares"][number]) =>
-    s.memberProgress?.map((m) => (
-      <i key={m.userId} className={`stamp ${m.status ? "s-" + m.status : "s-none"}`} title={`${m.name}: ${m.status ?? "not started"}`}>
-        {initial(m.name)}
-      </i>
-    ));
 
   return (
     <>
@@ -81,7 +74,7 @@ export default function BoardsView({
             <span className="ml">Leaderboard</span>
             {leaderboard.map((m) => (
               <span key={m.userId} className={`lb-chip${m.done === topDone && topDone > 0 ? " lead" : ""}`}>
-                <i className="stamp s-done sm">{initial(m.name)}</i>
+                <i className="stamp sm" style={{ background: colorOf(m.userId), borderColor: colorOf(m.userId), color: "#2c220a" }}>{initial(m.name)}</i>
                 {m.name}<b>{m.done}</b>
               </span>
             ))}
@@ -91,9 +84,11 @@ export default function BoardsView({
         <div className="legend">
           {shared ? (
             <>
-              <span><i className="stamp s-none sm" /> Not started</span>
-              <span><i className="stamp s-reading sm" /> Reading</span>
-              <span><i className="stamp s-done sm" /> Read</span>
+              <span><i className="sw sw-empty" /> Not started</span>
+              {ch.members.map((m) => (
+                <span key={m.userId}><i className="sw" style={{ background: colorOf(m.userId), borderColor: colorOf(m.userId) }} /> {m.name} read</span>
+              ))}
+              <span><i className="sw sw-done" /> {ch.members.length > 2 ? "All read" : "Both read"}</span>
             </>
           ) : (
             <>
@@ -109,35 +104,30 @@ export default function BoardsView({
           {ch.squares.map((s) => {
             const sb = squareBooks[s.id];
             let stateCls = "";
+            let style: React.CSSProperties | undefined;
             if (shared) {
-              const mp = s.memberProgress ?? [];
-              const allDone = mp.length > 0 && mp.every((m) => m.status === "done");
-              const anyActive = mp.some((m) => m.status);
-              stateCls = allDone ? " done" : anyActive ? " progress" : ""; // full done only when EVERYONE has read it
+              const doneM = (s.memberProgress ?? []).filter((m) => m.status === "done");
+              if (ch.members.length > 0 && doneM.length === ch.members.length) {
+                stateCls = " done"; // everyone read it → teal
+              } else if (doneM.length > 0) {
+                const cols = doneM.map((m) => colorOf(m.userId));
+                style = { background: cols.length === 1 ? cols[0] : `linear-gradient(135deg, ${cols.join(", ")})`, borderColor: cols[0] };
+              }
             } else {
               stateCls = s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
             }
             return (
-              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}${sb ? " has-book" : ""}`}>
+              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}${sb ? " has-book" : ""}`} style={style}>
                 {sb ? (
                   <>
                     <span className="sqtitle">{sb.title}</span>
-                    {sb.cover ? (
-                      <img className="sqcover-lg" src={sb.cover} alt="" loading="lazy" />
-                    ) : (
-                      <span className="sqcover-lg ph" />
-                    )}
-                    <span className="sqbottom">
-                      <span className="sqprompt">{s.name}</span>
-                      {shared ? <span className="mstamps">{stamps(s)}</span> : null}
-                    </span>
+                    {sb.cover ? <img className="sqcover-lg" src={sb.cover} alt="" loading="lazy" /> : <span className="sqcover-lg ph" />}
+                    <span className="sqbottom"><span className="sqprompt">{s.name}</span></span>
                   </>
                 ) : (
                   <>
                     <span className="nm">{s.name}</span>
-                    <span className="sqbottom">
-                      {shared ? <span className="mstamps">{stamps(s)}</span> : <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>}
-                    </span>
+                    {!shared && <span className="sqbottom"><span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span></span>}
                   </>
                 )}
               </Link>

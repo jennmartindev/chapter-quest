@@ -76,6 +76,7 @@ export interface SquareProgress extends Square {
 export interface Member {
   userId: string;
   name: string;
+  role: string;
 }
 
 export interface ChallengeWithSquares extends Challenge {

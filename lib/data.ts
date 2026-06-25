@@ -119,10 +119,14 @@ export async function loadEverything(): Promise<LoadResult> {
     }
   }
 
-  const membersByChallenge = new Map<string, { userId: string; name: string }[]>();
-  for (const m of (members ?? []) as { challenge_id: string; user_id: string; display_name: string | null }[]) {
+  const membersByChallenge = new Map<string, { userId: string; name: string; role: string }[]>();
+  for (const m of (members ?? []) as { challenge_id: string; user_id: string; display_name: string | null; role: string }[]) {
     if (!membersByChallenge.has(m.challenge_id)) membersByChallenge.set(m.challenge_id, []);
-    membersByChallenge.get(m.challenge_id)!.push({ userId: m.user_id, name: m.display_name ?? "Reader" });
+    membersByChallenge.get(m.challenge_id)!.push({ userId: m.user_id, name: m.display_name ?? "Reader", role: m.role });
+  }
+  // owner first, so color assignment is stable (owner = first colour)
+  for (const list of membersByChallenge.values()) {
+    list.sort((a, b) => Number(b.role === "owner") - Number(a.role === "owner"));
   }
 
   const progressBySquare = new Map<string, { userId: string; status: "reading" | "done" }[]>();
