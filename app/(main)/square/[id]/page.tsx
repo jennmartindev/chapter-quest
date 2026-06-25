@@ -35,7 +35,8 @@ export default async function SquarePage({ params }: { params: { id: string } })
     .filter(Boolean) as { book: typeof load.books[number]; status: string; alsoFills: { name: string; tag: string }[] }[];
 
   const hereIds = new Set(here.map((h) => h.book.id));
-  const tbr = load.books.filter((b) => (b.read_status === "to-read" || b.read_status === "currently-reading") && !hereIds.has(b.id));
+  // The whole library is searchable (read books included) — minus what's already here.
+  const books = load.books.filter((b) => !hereIds.has(b.id));
 
   // double-dip count: books tagged here that also touch another challenge
   const dipCount = here.filter((h) => h.alsoFills.some((a) => a.tag !== challenge!.tag)).length;
@@ -55,7 +56,7 @@ export default async function SquarePage({ params }: { params: { id: string } })
         maxPerBook={challenge.max_per_book}
         dipCount={dipCount}
         here={here.map((h) => ({ id: h.book.id, title: h.book.title, status: h.status, g1: h.book.cover_g1, g2: h.book.cover_g2, alsoFills: h.alsoFills }))}
-        tbr={tbr.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2 }))}
+        books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, status: b.read_status }))}
       />
     </>
   );
