@@ -260,6 +260,10 @@ input{ font-family:inherit; }
 .stamp.sm{ width:15px; height:15px; font-size:8px; }
 .stamp.s-reading{ background:var(--gold); color:#2c220a; border-color:var(--gold); }
 .stamp.s-done{ background:var(--accent); color:var(--done-ink); border-color:var(--accent); transform:rotate(-7deg); box-shadow:0 0 0 1.5px var(--card); }
+/* contrast for stamps sitting on a fully-done (green) tile */
+.sq.done .stamp{ border-color:transparent; }
+.sq.done .stamp.s-done{ background:rgba(255,255,255,.94); color:var(--accent-deep); box-shadow:0 0 0 1.5px var(--accent); }
+.sq.done .stamp.s-none{ background:rgba(255,255,255,.22); color:var(--done-ink); }
 .lb-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--card-2); border:1px solid var(--line); border-radius:20px; padding:3px 11px 3px 3px; font-weight:600; font-size:11.5px; color:var(--text); }
 .lb-chip b{ background:var(--ground); border-radius:10px; padding:1px 7px; font-family:var(--serif); }
 .lb-chip.lead{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; }

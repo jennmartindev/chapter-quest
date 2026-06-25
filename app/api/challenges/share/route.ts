@@ -35,7 +35,10 @@ export async function POST(request: Request) {
   const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single();
   await supabase
     .from("challenge_members")
-    .upsert({ challenge_id, user_id: user.id, display_name: profile?.display_name ?? "Reader", role: "owner" }, { onConflict: "challenge_id,user_id" });
+    .upsert(
+      { challenge_id, user_id: user.id, display_name: profile?.display_name ?? "Reader", role: "owner" },
+      { onConflict: "challenge_id,user_id", ignoreDuplicates: true }
+    );
 
   return NextResponse.json({ ok: true, code });
 }

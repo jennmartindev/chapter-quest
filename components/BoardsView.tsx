@@ -108,9 +108,15 @@ export default function BoardsView({
         <div className="bingo">
           {ch.squares.map((s) => {
             const sb = squareBooks[s.id];
-            const stateCls = shared
-              ? ""
-              : s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
+            let stateCls = "";
+            if (shared) {
+              const mp = s.memberProgress ?? [];
+              const allDone = mp.length > 0 && mp.every((m) => m.status === "done");
+              const anyActive = mp.some((m) => m.status);
+              stateCls = allDone ? " done" : anyActive ? " progress" : ""; // full done only when EVERYONE has read it
+            } else {
+              stateCls = s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
+            }
             return (
               <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}${sb ? " has-book" : ""}`}>
                 {sb ? (
