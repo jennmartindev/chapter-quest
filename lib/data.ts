@@ -3,13 +3,12 @@ import type {
   Book,
   Challenge,
   ChallengeWithSquares,
+  MemberProgress,
   Profile,
   Square,
   SquareProgress,
 } from "./types";
 import type { OptInput, Candidate } from "./optimizer";
-
-// All of these run on the server and rely on RLS to scope rows to the user.
 
 export async function getProfile(): Promise<Profile | null> {
   const supabase = createClient();
@@ -20,7 +19,6 @@ export async function getProfile(): Promise<Profile | null> {
 interface LoadResult {
   challenges: ChallengeWithSquares[];
   books: Book[];
-  // book_id -> array of {challengeId, squareId, status}
   bookSquares: {
     id: string;
     book_id: string;
@@ -28,62 +26,111 @@ interface LoadResult {
     square_id: string;
     why: string | null;
     status: string;
+    pick_title: string | null;
+    pick_cover: string | null;
   }[];
+  userId: string;
 }
 
 export async function loadEverything(): Promise<LoadResult> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const uid = user?.id ?? "";
 
-  const [{ data: challenges }, { data: squares }, { data: books }, { data: bookSquares }] =
+  const [{ data: challenges }, { data: squares }, { data: books }, { data: bookSquares }, { data: members }, { data: progress }] =
     await Promise.all([
       supabase.from("challenges").select("*").eq("archived", false).order("template_key"),
       supabase.from("squares").select("*").order("position"),
       supabase.from("books").select("*").order("title"),
       supabase.from("book_squares").select("*"),
+      supabase.from("challenge_members").select("*"),
+      supabase.from("square_progress").select("*"),
     ]);
 
   const bs = (bookSquares ?? []) as LoadResult["bookSquares"];
   const bookList = (books ?? []) as Book[];
 
-  // A square's state is derived from the read status of the books assigned to it.
+  // ---- lookups ----
   const statusByBook = new Map(bookList.map((b) => [b.id, b.read_status]));
-  const assignedBySquare = new Map<string, string[]>();
+  const ownStatusesBySquare = new Map<string, string[]>(); // solo: assigned books' read status
+  const picksBySquare = new Map<string, number>(); // any challenge: # of picks
   for (const r of bs) {
+    picksBySquare.set(r.square_id, (picksBySquare.get(r.square_id) ?? 0) + 1);
     const rs = statusByBook.get(r.book_id);
-    if (!rs) continue;
-    if (!assignedBySquare.has(r.square_id)) assignedBySquare.set(r.square_id, []);
-    assignedBySquare.get(r.square_id)!.push(rs);
+    if (rs) {
+      if (!ownStatusesBySquare.has(r.square_id)) ownStatusesBySquare.set(r.square_id, []);
+      ownStatusesBySquare.get(r.square_id)!.push(rs);
+    }
+  }
+
+  const membersByChallenge = new Map<string, { userId: string; name: string }[]>();
+  for (const m of (members ?? []) as { challenge_id: string; user_id: string; display_name: string | null }[]) {
+    if (!membersByChallenge.has(m.challenge_id)) membersByChallenge.set(m.challenge_id, []);
+    membersByChallenge.get(m.challenge_id)!.push({ userId: m.user_id, name: m.display_name ?? "Reader" });
+  }
+
+  const progressBySquare = new Map<string, { userId: string; status: "reading" | "done" }[]>();
+  for (const p of (progress ?? []) as { square_id: string; user_id: string; status: "reading" | "done" }[]) {
+    if (!progressBySquare.has(p.square_id)) progressBySquare.set(p.square_id, []);
+    progressBySquare.get(p.square_id)!.push({ userId: p.user_id, status: p.status });
   }
 
   const squaresByChallenge = new Map<string, SquareProgress[]>();
   for (const s of (squares ?? []) as Square[]) {
-    const statuses = assignedBySquare.get(s.id) ?? [];
-    const readCount = statuses.filter((x) => x === "read").length;
-    const readingCount = statuses.filter((x) => x === "currently-reading").length;
-    const done = readCount >= s.need;
-    const state: SquareProgress["state"] = done
-      ? "done"
-      : readingCount > 0 || readCount > 0
-      ? "progress"
-      : statuses.length > 0
-      ? "options"
-      : "empty";
-    const sp: SquareProgress = { ...s, logged: readCount, state };
-    if (!squaresByChallenge.has(s.challenge_id)) squaresByChallenge.set(s.challenge_id, []);
-    squaresByChallenge.get(s.challenge_id)!.push(sp);
+    squaresByChallenge.has(s.challenge_id) || squaresByChallenge.set(s.challenge_id, []);
+    squaresByChallenge.get(s.challenge_id)!.push(s as SquareProgress);
   }
 
-  const enriched: ChallengeWithSquares[] = ((challenges ?? []) as Challenge[]).map((c) => {
-    const sq = squaresByChallenge.get(c.id) ?? [];
-    const done = sq.filter((s) => s.state === "done").length;
-    return { ...c, squares: sq, done, total: sq.length };
+  const enriched: ChallengeWithSquares[] = ((challenges ?? []) as (Challenge & { shared?: boolean })[]).map((c) => {
+    const memberList = membersByChallenge.get(c.id) ?? [];
+    const sq = (squaresByChallenge.get(c.id) ?? []).map((base): SquareProgress => {
+      const s = base as Square;
+      const hasPicks = (picksBySquare.get(s.id) ?? 0) > 0;
+
+      if (c.shared) {
+        const progs = progressBySquare.get(s.id) ?? [];
+        const mine = progs.find((p) => p.userId === uid);
+        const state: SquareProgress["state"] =
+          mine?.status === "done" ? "done" : mine?.status === "reading" ? "progress" : hasPicks ? "options" : "empty";
+        const memberProgress: MemberProgress[] = memberList.map((m) => ({
+          userId: m.userId,
+          name: m.name,
+          status: progs.find((p) => p.userId === m.userId)?.status ?? null,
+        }));
+        return { ...s, logged: state === "done" ? s.need : 0, state, memberProgress };
+      }
+
+      // solo: derive from the user's own books' read status
+      const statuses = ownStatusesBySquare.get(s.id) ?? [];
+      const readCount = statuses.filter((x) => x === "read").length;
+      const readingCount = statuses.filter((x) => x === "currently-reading").length;
+      const done = readCount >= s.need;
+      const state: SquareProgress["state"] = done
+        ? "done"
+        : readingCount > 0 || readCount > 0
+        ? "progress"
+        : statuses.length > 0
+        ? "options"
+        : "empty";
+      return { ...s, logged: readCount, state };
+    });
+
+    return {
+      ...c,
+      squares: sq,
+      done: sq.filter((s) => s.state === "done").length,
+      total: sq.length,
+      shared: !!c.shared,
+      members: memberList,
+    };
   });
 
-  return { challenges: enriched, books: bookList, bookSquares: bs };
+  return { challenges: enriched, books: bookList, bookSquares: bs, userId: uid };
 }
 
-// Build the optimizer inputs: every to-read book, with its candidate squares
-// (the book_squares rows tagged to it) enriched with each square's live state.
+// Optimizer inputs: each to-read book + the candidate squares it could fill.
 export function buildOptimizerInputs(load: LoadResult): OptInput[] {
   const squareById = new Map<string, SquareProgress>();
   const challengeById = new Map<string, ChallengeWithSquares>();
@@ -112,7 +159,6 @@ export function buildOptimizerInputs(load: LoadResult): OptInput[] {
     candidatesByBook.get(r.book_id)!.push(cand);
   }
 
-  // Only books still on the TBR are "what to read next" candidates.
   return load.books
     .filter((b) => b.read_status === "to-read" || b.read_status === "currently-reading")
     .map((b) => ({ book: b, candidates: candidatesByBook.get(b.id) ?? [] }))

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { loadEverything } from "@/lib/data";
 import { challengeStatus, fmtDate } from "@/lib/format";
+import ShareButton from "@/components/ShareButton";
+
+const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +32,18 @@ export default async function ChallengesPage() {
                   <div className="bar"><i style={{ width: `${pct}%` }} /></div>
                   <span className="frac">{c.done}/{c.total}</span>
                 </div>
-                <Link href="/boards" className="open">Open board →</Link>
+                {c.shared && c.members.length > 0 && (
+                  <div className="members-bar" style={{ margin: "10px 0 0" }}>
+                    <span className="ml">Together</span>
+                    {c.members.map((m) => (
+                      <span key={m.userId} className="mchip"><i className="md md-none">{initial(m.name)}</i>{m.name}</span>
+                    ))}
+                  </div>
+                )}
+                <div className="cc-actions">
+                  <Link href={`/boards?c=${c.template_key ?? ""}`} className="open">Open board →</Link>
+                  {c.user_id === load.userId && <ShareButton challengeId={c.id} />}
+                </div>
               </div>
             </div>
           );

@@ -12,6 +12,7 @@ const RULE_TEXT: Record<string, string> = {
 };
 
 type SquareBooks = Record<string, { title: string; cover: string | null }>;
+const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
 export default function BoardsView({
   challenges,
@@ -28,7 +29,6 @@ export default function BoardsView({
 
   function pick(c: ChallengeWithSquares) {
     setCurrent(c.id);
-    // Persist the open board in the URL so returning from a square keeps it.
     if (typeof window !== "undefined" && c.template_key) {
       window.history.replaceState(null, "", `/boards?c=${c.template_key}`);
     }
@@ -36,13 +36,14 @@ export default function BoardsView({
 
   const rule = RULE_TEXT[ch.template_key ?? ""] ?? "";
   const pct = ch.total ? Math.round((ch.done / ch.total) * 100) : 0;
+  const shared = ch.shared && ch.members.length > 0;
 
   return (
     <>
       <div className="chswitch">
         {challenges.map((c) => (
           <button key={c.id} className={`chpill${c.id === current ? " on" : ""}`} onClick={() => pick(c)}>
-            <span>{c.name}</span>
+            <span>{c.name}{c.shared ? " ·" : ""}{c.shared ? <span className="shared-tag"> shared</span> : ""}</span>
             <span className="s">{c.done} / {c.total} {c.unit}</span>
           </button>
         ))}
@@ -58,11 +59,30 @@ export default function BoardsView({
         </div>
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
 
+        {shared && (
+          <div className="members-bar">
+            <span className="ml">Reading together</span>
+            {ch.members.map((m) => (
+              <span key={m.userId} className="mchip"><i className="md md-none">{initial(m.name)}</i>{m.name}</span>
+            ))}
+          </div>
+        )}
+
         <div className="legend">
-          <span><i className="sw sw-empty" /> Nothing assigned</span>
-          <span><i className="sw sw-options" /> Options picked</span>
-          <span><i className="sw sw-progress" /> In progress</span>
-          <span><i className="sw sw-done" /> Complete</span>
+          {shared ? (
+            <>
+              <span><i className="md md-none" /> Not started</span>
+              <span><i className="md md-reading" /> Reading</span>
+              <span><i className="md md-done" /> Read</span>
+            </>
+          ) : (
+            <>
+              <span><i className="sw sw-empty" /> Nothing assigned</span>
+              <span><i className="sw sw-options" /> Options picked</span>
+              <span><i className="sw sw-progress" /> In progress</span>
+              <span><i className="sw sw-done" /> Complete</span>
+            </>
+          )}
         </div>
 
         <div className="bingo">
@@ -73,14 +93,25 @@ export default function BoardsView({
             return (
               <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}`}>
                 <span className="nm">{s.name}</span>
-                {s.state !== "empty" && sb ? (
-                  <span className="sqbk">
-                    {sb.cover ? <img className="sqcover" src={sb.cover} alt="" loading="lazy" /> : null}
-                    <span className="bk">{sb.title}</span>
-                  </span>
-                ) : (
-                  <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
-                )}
+                <span className="sqfoot">
+                  {sb ? (
+                    <span className="sqbk">
+                      {!shared && sb.cover ? <img className="sqcover" src={sb.cover} alt="" loading="lazy" /> : null}
+                      <span className="bk">{sb.title}</span>
+                    </span>
+                  ) : (
+                    <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
+                  )}
+                  {shared && s.memberProgress ? (
+                    <span className="mdots">
+                      {s.memberProgress.map((m) => (
+                        <i key={m.userId} className={`md ${m.status ? "md-" + m.status : "md-none"}`} title={`${m.name}: ${m.status ?? "not started"}`}>
+                          {initial(m.name)}
+                        </i>
+                      ))}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             );
           })}
@@ -88,7 +119,7 @@ export default function BoardsView({
       </section>
 
       {rule && <p className="ruleband" dangerouslySetInnerHTML={{ __html: rule }} />}
-      <p className="board-tip">Tap any square to search your library and add a book.</p>
+      <p className="board-tip">Tap any square to {shared ? "see picks and mark your progress" : "search your library and add a book"}.</p>
     </>
   );
 }

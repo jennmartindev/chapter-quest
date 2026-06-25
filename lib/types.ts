@@ -60,14 +60,28 @@ export interface BookSquare {
   status: "planned" | "logged";
 }
 
+export interface MemberProgress {
+  userId: string;
+  name: string;
+  status: "reading" | "done" | null;
+}
+
 // A square enriched with progress derived from its assigned books' read status.
 export interface SquareProgress extends Square {
-  logged: number; // books assigned to this square that are 'read'
+  logged: number; // for the current viewer: books read / their progress
   state: "empty" | "options" | "progress" | "done";
+  memberProgress?: MemberProgress[]; // shared challenges only
+}
+
+export interface Member {
+  userId: string;
+  name: string;
 }
 
 export interface ChallengeWithSquares extends Challenge {
   squares: SquareProgress[];
-  done: number; // squares completed
+  done: number; // squares completed (by the current viewer)
   total: number; // total squares
+  shared: boolean;
+  members: Member[];
 }

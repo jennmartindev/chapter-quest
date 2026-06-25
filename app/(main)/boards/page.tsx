@@ -10,11 +10,10 @@ export default async function BoardsPage({ searchParams }: { searchParams: { c?:
   const bookById = new Map(load.books.map((b) => [b.id, b]));
   const squareBooks: Record<string, { title: string; cover: string | null }> = {};
   for (const r of load.bookSquares) {
-    const b = bookById.get(r.book_id);
-    if (!b) continue;
-    if (!squareBooks[r.square_id] || r.status === "logged") {
-      squareBooks[r.square_id] = { title: b.title, cover: b.cover_url };
-    }
+    // Prefer the denormalized pick snapshot (works across shared members).
+    const title = r.pick_title ?? bookById.get(r.book_id)?.title ?? "";
+    const cover = r.pick_cover ?? bookById.get(r.book_id)?.cover_url ?? null;
+    if (title && !squareBooks[r.square_id]) squareBooks[r.square_id] = { title, cover };
   }
 
   // Which board to open (persisted via ?c=<template_key>).

@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function SquarePage({ params }: { params: { id: string } }) {
   const load = await loadEverything();
 
-  // locate the square + its challenge
   let square = null as null | (typeof load.challenges)[number]["squares"][number];
   let challenge = null as null | (typeof load.challenges)[number];
   for (const c of load.challenges) {
@@ -22,24 +21,30 @@ export default async function SquarePage({ params }: { params: { id: string } })
   for (const c of load.challenges) for (const s of c.squares) { squareName.set(s.id, s.name); squareTag.set(s.id, c.tag); }
   const bookById = new Map(load.books.map((b) => [b.id, b]));
 
-  // books already credited to THIS square
+  // Picks on this square (denormalized so it works across shared members).
   const here = load.bookSquares
     .filter((r) => r.square_id === square!.id)
     .map((r) => {
-      const book = bookById.get(r.book_id);
+      const own = bookById.get(r.book_id);
       const alsoFills = load.bookSquares
         .filter((o) => o.book_id === r.book_id && o.square_id !== square!.id)
         .map((o) => ({ name: squareName.get(o.square_id) ?? "", tag: squareTag.get(o.square_id) ?? "" }));
-      return book ? { book, status: r.status, alsoFills } : null;
-    })
-    .filter(Boolean) as { book: typeof load.books[number]; status: string; alsoFills: { name: string; tag: string }[] }[];
+      return {
+        id: r.book_id,
+        title: r.pick_title ?? own?.title ?? "Book",
+        readStatus: own?.read_status ?? null,
+        g1: own?.cover_g1 ?? "#617E74",
+        g2: own?.cover_g2 ?? "#3f5238",
+        cover: r.pick_cover ?? own?.cover_url ?? null,
+        alsoFills,
+      };
+    });
 
-  const hereIds = new Set(here.map((h) => h.book.id));
-  // The whole library is searchable (read books included) — minus what's already here.
+  const hereIds = new Set(here.map((h) => h.id));
   const books = load.books.filter((b) => !hereIds.has(b.id));
-
-  // double-dip count: books tagged here that also touch another challenge
   const dipCount = here.filter((h) => h.alsoFills.some((a) => a.tag !== challenge!.tag)).length;
+
+  const myStatus = square.memberProgress?.find((m) => m.userId === load.userId)?.status ?? null;
 
   return (
     <>
@@ -54,7 +59,11 @@ export default async function SquarePage({ params }: { params: { id: string } })
         templateKey={challenge.template_key ?? ""}
         maxPerBook={challenge.max_per_book}
         dipCount={dipCount}
-        here={here.map((h) => ({ id: h.book.id, title: h.book.title, readStatus: h.book.read_status, g1: h.book.cover_g1, g2: h.book.cover_g2, cover: h.book.cover_url, alsoFills: h.alsoFills }))}
+        shared={challenge.shared}
+        myStatus={myStatus}
+        memberProgress={square.memberProgress ?? []}
+        currentUserId={load.userId}
+        here={here}
         books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, cover: b.cover_url, status: b.read_status }))}
       />
     </>
