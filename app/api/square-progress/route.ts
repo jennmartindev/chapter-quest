@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   if (!sq) return NextResponse.json({ error: "square not found" }, { status: 404 });
 
   const { error } = await supabase.from("square_progress").upsert(
-    { user_id: user.id, square_id, challenge_id: sq.challenge_id, status, updated_at: new Date().toISOString() },
+    { user_id: user.id, square_id, challenge_id: sq.challenge_id, status, auto: false, updated_at: new Date().toISOString() },
     { onConflict: "square_id,user_id" }
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

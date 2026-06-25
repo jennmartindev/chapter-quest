@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadEverything } from "@/lib/data";
+import { loadEverything, syncSharedProgress } from "@/lib/data";
 import SquareDetail from "@/components/SquareDetail";
 
 export const dynamic = "force-dynamic";
 
 export default async function SquarePage({ params }: { params: { id: string } }) {
+  await syncSharedProgress();
   const load = await loadEverything();
 
   let square = null as null | (typeof load.challenges)[number]["squares"][number];

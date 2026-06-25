@@ -10,6 +10,60 @@ import type {
 } from "./types";
 import type { OptInput, Candidate } from "./optimizer";
 
+const norm = (t: string | null) => (t ?? "").toLowerCase().trim();
+
+// For shared boards, reflect the current user's OWN library read-status onto
+// their per-person progress (so they don't have to mark it twice, and co-members
+// can see it). Only touches auto rows — manual overrides are left alone.
+export async function syncSharedProgress(): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user?.id;
+  if (!uid) return;
+
+  const { data: chs } = await supabase.from("challenges").select("id").eq("shared", true);
+  const sharedIds = (chs ?? []).map((c) => c.id);
+  if (sharedIds.length === 0) return;
+
+  const [{ data: picks }, { data: myBooks }, { data: myProg }] = await Promise.all([
+    supabase.from("book_squares").select("square_id, challenge_id, pick_title").in("challenge_id", sharedIds),
+    supabase.from("books").select("title, read_status"),
+    supabase.from("square_progress").select("square_id, status, auto").eq("user_id", uid).in("challenge_id", sharedIds),
+  ]);
+
+  const myStatusByTitle = new Map<string, "reading" | "done">();
+  for (const b of (myBooks ?? []) as { title: string; read_status: string }[]) {
+    const s = b.read_status === "read" ? "done" : b.read_status === "currently-reading" ? "reading" : null;
+    if (!s) continue;
+    const k = norm(b.title);
+    if (s === "done" || !myStatusByTitle.has(k)) myStatusByTitle.set(k, s);
+  }
+
+  const desired = new Map<string, { status: "reading" | "done"; challenge_id: string }>();
+  for (const p of (picks ?? []) as { square_id: string; challenge_id: string; pick_title: string | null }[]) {
+    const s = myStatusByTitle.get(norm(p.pick_title));
+    if (!s) continue;
+    const cur = desired.get(p.square_id);
+    if (s === "done" || !cur) desired.set(p.square_id, { status: s, challenge_id: p.challenge_id });
+  }
+
+  const progBySquare = new Map((myProg ?? []).map((r) => [r.square_id, r as { status: string; auto: boolean }]));
+  const upserts: Record<string, unknown>[] = [];
+  const deletes: string[] = [];
+  for (const [sid, d] of desired) {
+    const ex = progBySquare.get(sid);
+    if (ex && ex.auto === false) continue; // manual override wins
+    if (!ex || ex.status !== d.status) {
+      upserts.push({ user_id: uid, square_id: sid, challenge_id: d.challenge_id, status: d.status, auto: true, updated_at: new Date().toISOString() });
+    }
+  }
+  for (const r of (myProg ?? []) as { square_id: string; auto: boolean }[]) {
+    if (r.auto && !desired.has(r.square_id)) deletes.push(r.square_id);
+  }
+  if (upserts.length) await supabase.from("square_progress").upsert(upserts, { onConflict: "square_id,user_id" });
+  if (deletes.length) await supabase.from("square_progress").delete().eq("user_id", uid).in("square_id", deletes);
+}
+
 export async function getProfile(): Promise<Profile | null> {
   const supabase = createClient();
   const { data } = await supabase.from("profiles").select("*").single();

@@ -38,12 +38,29 @@ export default function BoardsView({
   const pct = ch.total ? Math.round((ch.done / ch.total) * 100) : 0;
   const shared = ch.shared && ch.members.length > 0;
 
+  const leaderboard = shared
+    ? ch.members
+        .map((m) => ({
+          ...m,
+          done: ch.squares.filter((s) => s.memberProgress?.find((p) => p.userId === m.userId)?.status === "done").length,
+        }))
+        .sort((a, b) => b.done - a.done)
+    : [];
+  const topDone = leaderboard[0]?.done ?? 0;
+
+  const stamps = (s: ChallengeWithSquares["squares"][number]) =>
+    s.memberProgress?.map((m) => (
+      <i key={m.userId} className={`stamp ${m.status ? "s-" + m.status : "s-none"}`} title={`${m.name}: ${m.status ?? "not started"}`}>
+        {initial(m.name)}
+      </i>
+    ));
+
   return (
     <>
       <div className="chswitch">
         {challenges.map((c) => (
           <button key={c.id} className={`chpill${c.id === current ? " on" : ""}`} onClick={() => pick(c)}>
-            <span>{c.name}{c.shared ? " ·" : ""}{c.shared ? <span className="shared-tag"> shared</span> : ""}</span>
+            <span>{c.name}{c.shared ? <span className="shared-tag"> · shared</span> : ""}</span>
             <span className="s">{c.done} / {c.total} {c.unit}</span>
           </button>
         ))}
@@ -61,9 +78,12 @@ export default function BoardsView({
 
         {shared && (
           <div className="members-bar">
-            <span className="ml">Reading together</span>
-            {ch.members.map((m) => (
-              <span key={m.userId} className="mchip"><i className="md md-none">{initial(m.name)}</i>{m.name}</span>
+            <span className="ml">Leaderboard</span>
+            {leaderboard.map((m) => (
+              <span key={m.userId} className={`lb-chip${m.done === topDone && topDone > 0 ? " lead" : ""}`}>
+                <i className="stamp s-done sm">{initial(m.name)}</i>
+                {m.name}<b>{m.done}</b>
+              </span>
             ))}
           </div>
         )}
@@ -71,9 +91,9 @@ export default function BoardsView({
         <div className="legend">
           {shared ? (
             <>
-              <span><i className="md md-none" /> Not started</span>
-              <span><i className="md md-reading" /> Reading</span>
-              <span><i className="md md-done" /> Read</span>
+              <span><i className="stamp s-none sm" /> Not started</span>
+              <span><i className="stamp s-reading sm" /> Reading</span>
+              <span><i className="stamp s-done sm" /> Read</span>
             </>
           ) : (
             <>
@@ -88,30 +108,32 @@ export default function BoardsView({
         <div className="bingo">
           {ch.squares.map((s) => {
             const sb = squareBooks[s.id];
-            const stateCls =
-              s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
+            const stateCls = shared
+              ? ""
+              : s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
             return (
-              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}`}>
-                <span className="nm">{s.name}</span>
-                <span className="sqfoot">
-                  {sb ? (
-                    <span className="sqbk">
-                      {!shared && sb.cover ? <img className="sqcover" src={sb.cover} alt="" loading="lazy" /> : null}
-                      <span className="bk">{sb.title}</span>
+              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}${sb ? " has-book" : ""}`}>
+                {sb ? (
+                  <>
+                    <span className="sqtitle">{sb.title}</span>
+                    {sb.cover ? (
+                      <img className="sqcover-lg" src={sb.cover} alt="" loading="lazy" />
+                    ) : (
+                      <span className="sqcover-lg ph" />
+                    )}
+                    <span className="sqbottom">
+                      <span className="sqprompt">{s.name}</span>
+                      {shared ? <span className="mstamps">{stamps(s)}</span> : null}
                     </span>
-                  ) : (
-                    <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
-                  )}
-                  {shared && s.memberProgress ? (
-                    <span className="mdots">
-                      {s.memberProgress.map((m) => (
-                        <i key={m.userId} className={`md ${m.status ? "md-" + m.status : "md-none"}`} title={`${m.name}: ${m.status ?? "not started"}`}>
-                          {initial(m.name)}
-                        </i>
-                      ))}
+                  </>
+                ) : (
+                  <>
+                    <span className="nm">{s.name}</span>
+                    <span className="sqbottom">
+                      {shared ? <span className="mstamps">{stamps(s)}</span> : <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>}
                     </span>
-                  ) : null}
-                </span>
+                  </>
+                )}
               </Link>
             );
           })}

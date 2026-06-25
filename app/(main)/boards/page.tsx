@@ -1,9 +1,10 @@
-import { loadEverything } from "@/lib/data";
+import { loadEverything, syncSharedProgress } from "@/lib/data";
 import BoardsView from "@/components/BoardsView";
 
 export const dynamic = "force-dynamic";
 
 export default async function BoardsPage({ searchParams }: { searchParams: { c?: string } }) {
+  await syncSharedProgress();
   const load = await loadEverything();
 
   // First assigned book per square (prefer a read/logged one for the shown title).
