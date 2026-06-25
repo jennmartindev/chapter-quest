@@ -47,6 +47,39 @@ async function googleBooksLookup(isbn: string): Promise<{ pages: number | null; 
   }
 }
 
+const firstAuthor = (a: string | null) => (a ?? "").split(/[,;]/)[0].trim();
+
+// Cover fallbacks by title/author — catch audiobooks (ASIN) and odd editions
+// that ISBN lookups miss.
+async function olSearchCover(title: string, author: string | null): Promise<string | null> {
+  try {
+    const q = new URLSearchParams({ title, limit: "1", fields: "cover_i,cover_edition_key" });
+    if (author) q.set("author", firstAuthor(author));
+    const res = await fetch(`https://openlibrary.org/search.json?${q}`, { headers: { "User-Agent": "DogEarsDunes/0.1" } });
+    if (!res.ok) return null;
+    const d = (await res.json())?.docs?.[0];
+    if (d?.cover_i) return `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`;
+    if (d?.cover_edition_key) return `https://covers.openlibrary.org/b/olid/${d.cover_edition_key}-M.jpg`;
+    return null;
+  } catch {
+    return null;
+  }
+}
+async function googleSearchCover(title: string, author: string | null): Promise<string | null> {
+  try {
+    const q = `intitle:${title}` + (author ? ` inauthor:${firstAuthor(author)}` : "");
+    const key = process.env.GOOGLE_BOOKS_API_KEY ? `&key=${process.env.GOOGLE_BOOKS_API_KEY}` : "";
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&country=US&maxResults=1${key}`, {
+      headers: { "User-Agent": "DogEarsDunes/0.1" },
+    });
+    if (!res.ok) return null;
+    const info = (await res.json())?.items?.[0]?.volumeInfo;
+    return (info?.imageLinks?.thumbnail || info?.imageLinks?.smallThumbnail || "").replace(/^http:/, "https:") || null;
+  } catch {
+    return null;
+  }
+}
+
 // Process one batch of un-enriched books against Open Library.
 export async function POST() {
   const supabase = createClient();
@@ -57,7 +90,7 @@ export async function POST() {
 
   const { data: books } = await supabase
     .from("books")
-    .select("id, isbn, title")
+    .select("id, isbn, title, author")
     .eq("enriched", false)
     .limit(BATCH);
 
@@ -104,32 +137,40 @@ export async function POST() {
 
   for (const b of books) {
     const patch: Record<string, unknown> = { enriched: true };
+    let pages: number | null = null;
+    let year: number | null = null;
+    let cover: string | null = null;
+
     if (isRealIsbn(b.isbn)) {
       const d = olData[`ISBN:${cleanIsbn(b.isbn)}`];
-      let pages = d?.number_of_pages ?? null;
-      let year = yearFrom(d?.publish_date);
-      let cover: string | null = d?.cover?.medium ?? d?.cover?.large ?? d?.cover?.small ?? null;
-      // Open Library miss → try Google Books for whatever's still missing.
+      pages = d?.number_of_pages ?? null;
+      year = yearFrom(d?.publish_date);
+      cover = d?.cover?.medium ?? d?.cover?.large ?? d?.cover?.small ?? null;
       if (!pages || !year || !cover) {
         const g = await googleBooksLookup(cleanIsbn(b.isbn)!);
         if (g) { if (!pages) pages = g.pages; if (!year) year = g.year; if (!cover) cover = g.cover; }
       }
-      if (pages) patch.pages = pages;
-      if (year) patch.publish_year = year;
-      if (cover) patch.cover_url = cover;
-      if (pages || year || cover) updated++;
-      for (const sug of suggestFromMeta(pages, year)) {
-        const squareId = squareIdByTmplKey.get(`${sug.templateKey}/${sug.squareKey}`);
-        if (squareId) {
-          suggestionRows.push({
-            user_id: user.id,
-            book_id: b.id,
-            square_id: squareId,
-            challenge_id: challengeBySquare.get(squareId),
-            why: sug.why,
-            status: "planned",
-          });
-        }
+    }
+    // Cover fallback by title/author (works even without an ISBN).
+    if (!cover) cover = await olSearchCover(b.title, b.author);
+    if (!cover) cover = await googleSearchCover(b.title, b.author);
+
+    if (pages) patch.pages = pages;
+    if (year) patch.publish_year = year;
+    if (cover) patch.cover_url = cover;
+    if (pages || year || cover) updated++;
+
+    for (const sug of suggestFromMeta(pages, year)) {
+      const squareId = squareIdByTmplKey.get(`${sug.templateKey}/${sug.squareKey}`);
+      if (squareId) {
+        suggestionRows.push({
+          user_id: user.id,
+          book_id: b.id,
+          square_id: squareId,
+          challenge_id: challengeBySquare.get(squareId),
+          why: sug.why,
+          status: "planned",
+        });
       }
     }
     await supabase.from("books").update(patch).eq("id", b.id);
