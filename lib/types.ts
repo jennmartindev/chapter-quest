@@ -59,9 +59,10 @@ export interface BookSquare {
   status: "planned" | "logged";
 }
 
-// A square enriched with how many books are currently logged against it.
+// A square enriched with progress derived from its assigned books' read status.
 export interface SquareProgress extends Square {
-  logged: number;
+  logged: number; // books assigned to this square that are 'read'
+  state: "empty" | "options" | "progress" | "done";
 }
 
 export interface ChallengeWithSquares extends Challenge {

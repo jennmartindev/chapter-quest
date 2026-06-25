@@ -43,29 +43,43 @@ export async function loadEverything(): Promise<LoadResult> {
     ]);
 
   const bs = (bookSquares ?? []) as LoadResult["bookSquares"];
+  const bookList = (books ?? []) as Book[];
 
-  // logged count per square
-  const loggedBySquare = new Map<string, number>();
+  // A square's state is derived from the read status of the books assigned to it.
+  const statusByBook = new Map(bookList.map((b) => [b.id, b.read_status]));
+  const assignedBySquare = new Map<string, string[]>();
   for (const r of bs) {
-    if (r.status === "logged") {
-      loggedBySquare.set(r.square_id, (loggedBySquare.get(r.square_id) ?? 0) + 1);
-    }
+    const rs = statusByBook.get(r.book_id);
+    if (!rs) continue;
+    if (!assignedBySquare.has(r.square_id)) assignedBySquare.set(r.square_id, []);
+    assignedBySquare.get(r.square_id)!.push(rs);
   }
 
   const squaresByChallenge = new Map<string, SquareProgress[]>();
   for (const s of (squares ?? []) as Square[]) {
-    const sp: SquareProgress = { ...s, logged: loggedBySquare.get(s.id) ?? 0 };
+    const statuses = assignedBySquare.get(s.id) ?? [];
+    const readCount = statuses.filter((x) => x === "read").length;
+    const readingCount = statuses.filter((x) => x === "currently-reading").length;
+    const done = readCount >= s.need;
+    const state: SquareProgress["state"] = done
+      ? "done"
+      : readingCount > 0 || readCount > 0
+      ? "progress"
+      : statuses.length > 0
+      ? "options"
+      : "empty";
+    const sp: SquareProgress = { ...s, logged: readCount, state };
     if (!squaresByChallenge.has(s.challenge_id)) squaresByChallenge.set(s.challenge_id, []);
     squaresByChallenge.get(s.challenge_id)!.push(sp);
   }
 
   const enriched: ChallengeWithSquares[] = ((challenges ?? []) as Challenge[]).map((c) => {
     const sq = squaresByChallenge.get(c.id) ?? [];
-    const done = sq.filter((s) => s.logged >= s.need).length;
+    const done = sq.filter((s) => s.state === "done").length;
     return { ...c, squares: sq, done, total: sq.length };
   });
 
-  return { challenges: enriched, books: (books ?? []) as Book[], bookSquares: bs };
+  return { challenges: enriched, books: bookList, bookSquares: bs };
 }
 
 // Build the optimizer inputs: every to-read book, with its candidate squares

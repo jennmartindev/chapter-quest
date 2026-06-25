@@ -59,22 +59,21 @@ export default function BoardsView({
         <div className="bar"><i style={{ width: `${pct}%` }} /></div>
 
         <div className="legend">
-          <span><i className="sw sw-empty" /> Not started</span>
-          <span><i className="sw sw-part" /> In progress</span>
+          <span><i className="sw sw-empty" /> Nothing assigned</span>
+          <span><i className="sw sw-options" /> Options picked</span>
+          <span><i className="sw sw-progress" /> In progress</span>
           <span><i className="sw sw-done" /> Complete</span>
         </div>
 
         <div className="bingo">
           {ch.squares.map((s) => {
-            const done = s.logged >= s.need;
-            const assigned = !!squareBooks[s.id];
-            const partial = assigned && !done;
             const title = squareBooks[s.id]?.title;
-            const cls = `sq${done ? " done" : partial ? " partial" : ""}`;
+            const stateCls =
+              s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
             return (
-              <Link key={s.id} href={`/square/${s.id}`} className={cls}>
+              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}`}>
                 <span className="nm">{s.name}</span>
-                {(done || partial) && title ? (
+                {s.state !== "empty" && title ? (
                   <span className="bk">{title}</span>
                 ) : (
                   <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
