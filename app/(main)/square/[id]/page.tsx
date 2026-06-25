@@ -54,8 +54,8 @@ export default async function SquarePage({ params }: { params: { id: string } })
         templateKey={challenge.template_key ?? ""}
         maxPerBook={challenge.max_per_book}
         dipCount={dipCount}
-        here={here.map((h) => ({ id: h.book.id, title: h.book.title, readStatus: h.book.read_status, g1: h.book.cover_g1, g2: h.book.cover_g2, alsoFills: h.alsoFills }))}
-        books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, status: b.read_status }))}
+        here={here.map((h) => ({ id: h.book.id, title: h.book.title, readStatus: h.book.read_status, g1: h.book.cover_g1, g2: h.book.cover_g2, cover: h.book.cover_url, alsoFills: h.alsoFills }))}
+        books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, cover: b.cover_url, status: b.read_status }))}
       />
     </>
   );

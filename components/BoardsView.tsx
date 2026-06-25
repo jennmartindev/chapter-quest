@@ -11,7 +11,7 @@ const RULE_TEXT: Record<string, string> = {
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
 };
 
-type SquareBooks = Record<string, { title: string }>;
+type SquareBooks = Record<string, { title: string; cover: string | null }>;
 
 export default function BoardsView({
   challenges,
@@ -67,14 +67,17 @@ export default function BoardsView({
 
         <div className="bingo">
           {ch.squares.map((s) => {
-            const title = squareBooks[s.id]?.title;
+            const sb = squareBooks[s.id];
             const stateCls =
               s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
             return (
               <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}`}>
                 <span className="nm">{s.name}</span>
-                {s.state !== "empty" && title ? (
-                  <span className="bk">{title}</span>
+                {s.state !== "empty" && sb ? (
+                  <span className="sqbk">
+                    {sb.cover ? <img className="sqcover" src={sb.cover} alt="" loading="lazy" /> : null}
+                    <span className="bk">{sb.title}</span>
+                  </span>
                 ) : (
                   <span className="cnt">{Math.min(s.logged, s.need)}/{s.need}</span>
                 )}

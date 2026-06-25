@@ -20,7 +20,7 @@ export async function GET() {
   return NextResponse.json({ remaining: count ?? 0 });
 }
 
-interface OLData { number_of_pages?: number; publish_date?: string }
+interface OLData { number_of_pages?: number; publish_date?: string; cover?: { small?: string; medium?: string; large?: string } }
 
 function yearFrom(publish_date?: string): number | null {
   if (!publish_date) return null;
@@ -30,7 +30,7 @@ function yearFrom(publish_date?: string): number | null {
 
 // Fallback for the ~30% of ISBNs Open Library lacks page counts for
 // (newer 979-8 / KDP / self-pub editions). One ISBN per request.
-async function googleBooksLookup(isbn: string): Promise<{ pages: number | null; year: number | null } | null> {
+async function googleBooksLookup(isbn: string): Promise<{ pages: number | null; year: number | null; cover: string | null } | null> {
   try {
     const key = process.env.GOOGLE_BOOKS_API_KEY ? `&key=${process.env.GOOGLE_BOOKS_API_KEY}` : "";
     const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&country=US${key}`, {
@@ -40,7 +40,8 @@ async function googleBooksLookup(isbn: string): Promise<{ pages: number | null; 
     const json = await res.json();
     const info = json?.items?.[0]?.volumeInfo;
     if (!info) return null;
-    return { pages: typeof info.pageCount === "number" ? info.pageCount : null, year: yearFrom(info.publishedDate) };
+    const cover = (info.imageLinks?.thumbnail || info.imageLinks?.smallThumbnail || "").replace(/^http:/, "https:") || null;
+    return { pages: typeof info.pageCount === "number" ? info.pageCount : null, year: yearFrom(info.publishedDate), cover };
   } catch {
     return null;
   }
@@ -107,14 +108,16 @@ export async function POST() {
       const d = olData[`ISBN:${cleanIsbn(b.isbn)}`];
       let pages = d?.number_of_pages ?? null;
       let year = yearFrom(d?.publish_date);
+      let cover: string | null = d?.cover?.medium ?? d?.cover?.large ?? d?.cover?.small ?? null;
       // Open Library miss → try Google Books for whatever's still missing.
-      if (!pages || !year) {
+      if (!pages || !year || !cover) {
         const g = await googleBooksLookup(cleanIsbn(b.isbn)!);
-        if (g) { if (!pages) pages = g.pages; if (!year) year = g.year; }
+        if (g) { if (!pages) pages = g.pages; if (!year) year = g.year; if (!cover) cover = g.cover; }
       }
       if (pages) patch.pages = pages;
       if (year) patch.publish_year = year;
-      if (pages || year) updated++;
+      if (cover) patch.cover_url = cover;
+      if (pages || year || cover) updated++;
       for (const sug of suggestFromMeta(pages, year)) {
         const squareId = squareIdByTmplKey.get(`${sug.templateKey}/${sug.squareKey}`);
         if (squareId) {

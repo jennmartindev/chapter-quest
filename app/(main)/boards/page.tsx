@@ -8,12 +8,12 @@ export default async function BoardsPage({ searchParams }: { searchParams: { c?:
 
   // First assigned book per square (prefer a read/logged one for the shown title).
   const bookById = new Map(load.books.map((b) => [b.id, b]));
-  const squareBooks: Record<string, { title: string }> = {};
+  const squareBooks: Record<string, { title: string; cover: string | null }> = {};
   for (const r of load.bookSquares) {
     const b = bookById.get(r.book_id);
     if (!b) continue;
     if (!squareBooks[r.square_id] || r.status === "logged") {
-      squareBooks[r.square_id] = { title: b.title };
+      squareBooks[r.square_id] = { title: b.title, cover: b.cover_url };
     }
   }
 

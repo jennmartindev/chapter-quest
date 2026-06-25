@@ -46,6 +46,7 @@ export interface Book {
   publish_year: number | null;
   cover_g1: string;
   cover_g2: string;
+  cover_url: string | null;
   source: string;
   tags: string | null;
 }

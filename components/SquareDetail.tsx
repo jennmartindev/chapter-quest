@@ -4,8 +4,14 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShell } from "./Shell";
 
-interface HereBook { id: string; title: string; readStatus: string; g1: string; g2: string; alsoFills: { name: string; tag: string }[]; }
-interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; status: string; }
+interface HereBook { id: string; title: string; readStatus: string; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
+interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; cover: string | null; status: string; }
+
+function coverStyle(cover: string | null, g1: string, g2: string): React.CSSProperties {
+  return cover
+    ? { backgroundImage: `url(${cover})`, backgroundSize: "cover", backgroundPosition: "center" }
+    : { background: `linear-gradient(160deg, ${g1}, ${g2})` };
+}
 
 const STATUS_LABEL: Record<string, string> = {
   read: "Read", "currently-reading": "Reading", "to-read": "Want to read", "did-not-finish": "DNF",
@@ -93,7 +99,7 @@ export default function SquareDetail(props: {
           <div className="section-title"><h2 style={{ fontSize: 16 }}>Your picks</h2></div>
           {props.here.map((h) => (
             <div className="match" key={h.id}>
-              <div className="cover" style={{ background: `linear-gradient(160deg, ${h.g1}, ${h.g2})` }} />
+              <div className="cover" style={coverStyle(h.cover, h.g1, h.g2)} />
               <div className="mt">
                 <b>{h.title}</b>
                 <span>{h.alsoFills.length ? "also fills: " + h.alsoFills.map((a) => a.name).join(", ") : "candidate for this square"}</span>
@@ -123,7 +129,7 @@ export default function SquareDetail(props: {
         <>
           {shown.map((b) => (
             <div className="match" key={b.id}>
-              <div className="cover" style={{ background: `linear-gradient(160deg, ${b.g1}, ${b.g2})` }} />
+              <div className="cover" style={coverStyle(b.cover, b.g1, b.g2)} />
               <div className="mt"><b>{b.title}</b><span>{b.author ?? ""}</span></div>
               <span className={`bstat s-${b.status}`}>{STATUS_LABEL[b.status] ?? b.status}</span>
               <button className="add" disabled={busy === b.id} onClick={() => assign(b.id, b.title)}>Add</button>
