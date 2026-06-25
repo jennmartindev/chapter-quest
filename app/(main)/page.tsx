@@ -39,9 +39,9 @@ export default async function HomePage() {
       <DuneWave className="dune" />
 
       <div className="stat-row">
-        <div className="stat"><div className="e"><IconFlame size={18} /></div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
-        <div className="stat"><div className="e"><IconGrid size={18} /></div><div className="n">{squaresDone}<small>/{squaresTotal}</small></div><div className="l">Squares done</div></div>
-        <div className="stat"><div className="e"><IconLayers size={18} /></div><div className="n">{dips}</div><div className="l">Multi-challenge picks</div></div>
+        <div className="stat stat--streak"><div className="e"><IconFlame size={22} /></div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
+        <div className="stat stat--squares"><div className="e"><IconGrid size={22} /></div><div className="n">{squaresDone}<small>/{squaresTotal}</small></div><div className="l">Squares done</div></div>
+        <div className="stat stat--multi"><div className="e"><IconLayers size={22} /></div><div className="n">{dips}</div><div className="l">Multi-challenge picks</div></div>
       </div>
 
       {top ? (
@@ -101,7 +101,7 @@ export default async function HomePage() {
                 <div className="bar"><i style={{ width: `${pct}%` }} /></div>
                 <span className="frac">{c.done}/{c.total}</span>
               </div>
-              <Link href="/boards" className="open" style={{ display: "block", textAlign: "center" }}>Open board →</Link>
+              <Link href="/boards" className="open">Open board →</Link>
             </div>
           </div>
         );

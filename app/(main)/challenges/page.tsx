@@ -29,7 +29,7 @@ export default async function ChallengesPage() {
                   <div className="bar"><i style={{ width: `${pct}%` }} /></div>
                   <span className="frac">{c.done}/{c.total}</span>
                 </div>
-                <Link href="/boards" className="open" style={{ display: "block", textAlign: "center" }}>Open board →</Link>
+                <Link href="/boards" className="open">Open board →</Link>
               </div>
             </div>
           );
