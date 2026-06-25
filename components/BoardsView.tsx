@@ -11,8 +11,8 @@ const RULE_TEXT: Record<string, string> = {
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
 };
 
-// Per-person colors: owner first (gold), then pink, then blue/purple for more.
-const MEMBER_COLORS = ["#C89347", "#C57B9A", "#6F8FB8", "#9C7CC2"];
+// Per-person colors: owner first (yellow), then peach-pink, then more.
+const MEMBER_COLORS = ["#fff9c2", "#ffd5b3", "#cfe0d6", "#e6d3ec"];
 type SquareBooks = Record<string, { title: string; cover: string | null }>;
 const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
@@ -74,7 +74,7 @@ export default function BoardsView({
             <span className="ml">Leaderboard</span>
             {leaderboard.map((m) => (
               <span key={m.userId} className={`lb-chip${m.done === topDone && topDone > 0 ? " lead" : ""}`}>
-                <i className="stamp sm" style={{ background: colorOf(m.userId), borderColor: colorOf(m.userId), color: "#2c220a" }}>{initial(m.name)}</i>
+                <i className="stamp sm" style={{ background: colorOf(m.userId), color: "#5a4a2a" }}>{initial(m.name)}</i>
                 {m.name}<b>{m.done}</b>
               </span>
             ))}
@@ -86,7 +86,7 @@ export default function BoardsView({
             <>
               <span><i className="sw sw-empty" /> Not started</span>
               {ch.members.map((m) => (
-                <span key={m.userId}><i className="sw" style={{ background: colorOf(m.userId), borderColor: colorOf(m.userId) }} /> {m.name} read</span>
+                <span key={m.userId}><i className="sw" style={{ background: colorOf(m.userId) }} /> {m.name} read</span>
               ))}
               <span><i className="sw sw-done" /> {ch.members.length > 2 ? "All read" : "Both read"}</span>
             </>
@@ -103,21 +103,23 @@ export default function BoardsView({
         <div className="bingo">
           {ch.squares.map((s) => {
             const sb = squareBooks[s.id];
-            let stateCls = "";
+            let cls = "sq";
             let style: React.CSSProperties | undefined;
             if (shared) {
               const doneM = (s.memberProgress ?? []).filter((m) => m.status === "done");
               if (ch.members.length > 0 && doneM.length === ch.members.length) {
-                stateCls = " done"; // everyone read it → teal
+                cls += " done"; // everyone read it → teal
               } else if (doneM.length > 0) {
-                const cols = doneM.map((m) => colorOf(m.userId));
-                style = { background: cols.length === 1 ? cols[0] : `linear-gradient(135deg, ${cols.join(", ")})`, borderColor: cols[0] };
+                cls += " colored";
+                style = { ["--ucolor" as unknown as string]: colorOf(doneM[0].userId) };
               }
             } else {
-              stateCls = s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
+              cls += s.state === "done" ? " done" : s.state === "progress" ? " progress" : s.state === "options" ? " options" : "";
             }
+            if (sb) cls += " has-book";
+            if (sb?.cover) cls += " has-cover";
             return (
-              <Link key={s.id} href={`/square/${s.id}`} className={`sq${stateCls}${sb ? " has-book" : ""}`} style={style}>
+              <Link key={s.id} href={`/square/${s.id}`} className={cls} style={style}>
                 {sb ? (
                   <>
                     <span className="sqtitle">{sb.title}</span>

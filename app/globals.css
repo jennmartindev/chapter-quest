@@ -268,7 +268,22 @@ input{ font-family:inherit; }
 .lb-chip b{ background:var(--ground); border-radius:10px; padding:1px 7px; font-family:var(--serif); }
 .lb-chip.lead{ border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset; }
 .lb-chip.lead b{ background:var(--gold); color:#2c220a; }
-@media (max-width:600px){ .sqcover-lg{ display:none; } .sqtitle{ font-size:9.5px; } .sqprompt{ font-size:7.5px; -webkit-line-clamp:1; } }
+/* one-person read → that person's colour fills the tile (desktop) */
+.sq.colored{ background:var(--ucolor); border-color:rgba(46,64,71,.16); }
+
+@media (max-width:600px){
+  /* Books with a real cover: the cover fills the square; read-state is a
+     colored frame, so the whole 5x5 board still fits with no scrolling. */
+  .sq.has-cover{ padding:0; }
+  .sq.has-cover .sqtitle, .sq.has-cover .sqbottom{ display:none; }
+  .sq.has-cover .sqcover-lg{ display:block; position:absolute; inset:0; width:100%; height:100%; border-radius:11px; box-shadow:none; }
+  .sq.has-cover.colored{ background:transparent; box-shadow:inset 0 0 0 3px var(--ucolor); }
+  .sq.has-cover.done{ box-shadow:inset 0 0 0 3px var(--accent); }
+  .sq.has-cover.done .sqcover-lg{ filter:brightness(.82) saturate(.85); }
+  /* squares without a cover keep their text */
+  .sq:not(.has-cover) .sqcover-lg{ display:none; }
+  .sqtitle{ font-size:9.5px; } .sqprompt{ font-size:7.5px; -webkit-line-clamp:1; }
+}
 @media (max-width:600px){ .sq .nm{ font-size:9.5px; -webkit-line-clamp:3; } .sq .bk{ display:none; } .board-card{ padding:15px; } }
 
 /* Prompt detail */
