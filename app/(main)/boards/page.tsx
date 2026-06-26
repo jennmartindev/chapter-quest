@@ -24,7 +24,7 @@ export default async function BoardsPage({ searchParams }: { searchParams: { c?:
   return (
     <>
       <span className="eyebrow">Your boards</span>
-      <BoardsView challenges={load.challenges} squareBooks={squareBooks} initialId={initialId} />
+      <BoardsView challenges={load.challenges} squareBooks={squareBooks} initialId={initialId} currentUserId={load.userId} />
     </>
   );
 }

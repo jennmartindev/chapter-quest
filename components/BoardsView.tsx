@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useShell } from "./Shell";
 import type { ChallengeWithSquares } from "@/lib/types";
 
 const RULE_TEXT: Record<string, string> = {
@@ -20,14 +22,37 @@ export default function BoardsView({
   challenges,
   squareBooks,
   initialId,
+  currentUserId,
 }: {
   challenges: ChallengeWithSquares[];
   squareBooks: SquareBooks;
   initialId?: string;
+  currentUserId: string;
 }) {
+  const router = useRouter();
+  const { toast } = useShell();
   const [current, setCurrent] = useState(initialId ?? challenges[0]?.id);
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
   const ch = challenges.find((c) => c.id === current) ?? challenges[0];
   if (!ch) return <p className="empty">No challenges yet.</p>;
+
+  // Press-and-hold a shared square to toggle your own "read" — no need to open it.
+  async function quickMark(square: ChallengeWithSquares["squares"][number]) {
+    const mine = square.memberProgress?.find((m) => m.userId === currentUserId);
+    const makeDone = mine?.status !== "done";
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(25);
+    const res = await fetch("/api/square-progress", makeDone
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ square_id: square.id, status: "done" }) }
+      : { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ square_id: square.id }) });
+    if (res.ok) { toast(makeDone ? "Marked read ✓" : "Marked unread"); router.refresh(); }
+  }
+  function pressStart(square: ChallengeWithSquares["squares"][number]) {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => { longPressed.current = true; quickMark(square); }, 480);
+  }
+  function pressEnd() { if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; } }
+  function clickCapture(e: React.MouseEvent) { if (longPressed.current) { e.preventDefault(); e.stopPropagation(); longPressed.current = false; } }
 
   function pick(c: ChallengeWithSquares) {
     setCurrent(c.id);
@@ -122,7 +147,21 @@ export default function BoardsView({
             if (sb) cls += " has-book";
             if (sb?.cover) cls += " has-cover";
             return (
-              <Link key={s.id} href={`/square/${s.id}`} className={cls} style={style}>
+              <Link
+                key={s.id}
+                href={`/square/${s.id}`}
+                className={cls}
+                style={style}
+                {...(shared
+                  ? {
+                      onPointerDown: () => pressStart(s),
+                      onPointerUp: pressEnd,
+                      onPointerLeave: pressEnd,
+                      onClickCapture: clickCapture,
+                      onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+                    }
+                  : {})}
+              >
                 {sb ? (
                   <>
                     <span className="sqtitle">{sb.title}</span>
@@ -142,7 +181,9 @@ export default function BoardsView({
       </section>
 
       {rule && <p className="ruleband" dangerouslySetInnerHTML={{ __html: rule }} />}
-      <p className="board-tip">Tap any square to {shared ? "see picks and mark your progress" : "search your library and add a book"}.</p>
+      <p className="board-tip">
+        {shared ? "Tap a square to open it · press & hold to mark it read" : "Tap any square to search your library and add a book"}.
+      </p>
     </>
   );
 }

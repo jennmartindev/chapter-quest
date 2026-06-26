@@ -52,15 +52,18 @@ const cleanTitle = (t: string) => t.split(/\s*:\s|\s[–—-]\s|\s*\(/)[0].trim(
 
 // Cover fallbacks by title/author — catch audiobooks (ASIN) and odd editions
 // that ISBN lookups miss.
+// Scan several results and return the first that actually HAS a cover
+// (the top hit is often a cover-less box-set/edition).
 async function olSearchCover(title: string, author: string | null): Promise<string | null> {
   try {
-    const q = new URLSearchParams({ title, limit: "1", fields: "cover_i,cover_edition_key" });
+    const q = new URLSearchParams({ title, limit: "5", fields: "cover_i,cover_edition_key" });
     if (author) q.set("author", firstAuthor(author));
     const res = await fetch(`https://openlibrary.org/search.json?${q}`, { headers: { "User-Agent": "DogEarsDunes/0.1" } });
     if (!res.ok) return null;
-    const d = (await res.json())?.docs?.[0];
-    if (d?.cover_i) return `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`;
-    if (d?.cover_edition_key) return `https://covers.openlibrary.org/b/olid/${d.cover_edition_key}-M.jpg`;
+    for (const d of (await res.json())?.docs ?? []) {
+      if (d.cover_i) return `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`;
+      if (d.cover_edition_key) return `https://covers.openlibrary.org/b/olid/${d.cover_edition_key}-M.jpg`;
+    }
     return null;
   } catch {
     return null;
@@ -68,14 +71,17 @@ async function olSearchCover(title: string, author: string | null): Promise<stri
 }
 async function googleSearchCover(title: string, author: string | null): Promise<string | null> {
   try {
-    const q = `intitle:${title}` + (author ? ` inauthor:${firstAuthor(author)}` : "");
+    const q = author ? `${title} ${firstAuthor(author)}` : title;
     const key = process.env.GOOGLE_BOOKS_API_KEY ? `&key=${process.env.GOOGLE_BOOKS_API_KEY}` : "";
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&country=US&maxResults=1${key}`, {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&country=US&maxResults=5${key}`, {
       headers: { "User-Agent": "DogEarsDunes/0.1" },
     });
     if (!res.ok) return null;
-    const info = (await res.json())?.items?.[0]?.volumeInfo;
-    return (info?.imageLinks?.thumbnail || info?.imageLinks?.smallThumbnail || "").replace(/^http:/, "https:") || null;
+    for (const it of (await res.json())?.items ?? []) {
+      const u = it.volumeInfo?.imageLinks?.thumbnail || it.volumeInfo?.imageLinks?.smallThumbnail;
+      if (u) return u.replace(/^http:/, "https:");
+    }
+    return null;
   } catch {
     return null;
   }

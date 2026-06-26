@@ -271,6 +271,7 @@ input{ font-family:inherit; }
 .lb-chip.lead b{ background:var(--gold); color:#2c220a; }
 /* one-person read → soft tint + colored ring in that reader's theme colour */
 .sq.colored{ background:color-mix(in srgb, var(--ucolor) 22%, var(--card)); border-color:color-mix(in srgb, var(--ucolor) 55%, var(--line)); box-shadow:inset 0 0 0 2.5px var(--ucolor); }
+.sq{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
 
 @media (max-width:600px){
   /* Books with a real cover: the cover fills the square; read-state is a
