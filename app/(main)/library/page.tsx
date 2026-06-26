@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadEverything } from "@/lib/data";
+import CoverEdit from "@/components/CoverEdit";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,14 @@ export default async function LibraryPage() {
           const credits = creditsByBook.get(b.id) ?? [];
           return (
             <div className="lib-item" key={b.id}>
-              <div className="cover" style={{ background: `linear-gradient(160deg, ${b.cover_g1}, ${b.cover_g2})` }} />
+              <div
+                className="cover"
+                style={
+                  b.cover_url
+                    ? { backgroundImage: `url(${b.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : { background: `linear-gradient(160deg, ${b.cover_g1}, ${b.cover_g2})` }
+                }
+              />
               <div className="li">
                 <b>{b.title}</b>
                 <div className="au">{b.author ?? ""} · <span className="lib-status">{STATUS_LABEL[b.read_status] ?? b.read_status}</span></div>
@@ -56,6 +64,7 @@ export default async function LibraryPage() {
                   )}
                 </div>
               </div>
+              <CoverEdit bookId={b.id} hasCover={!!b.cover_url} />
             </div>
           );
         })

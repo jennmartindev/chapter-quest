@@ -357,6 +357,8 @@ input{ font-family:inherit; }
 .lib-item .li .credits{ display:flex; flex-wrap:wrap; gap:5px; }
 .lib-item .li .credits .cr{ font-size:9.5px; font-weight:600; padding:3px 7px; border-radius:10px; background:var(--card-2); color:var(--text-soft); display:inline-flex; gap:5px; align-items:center; }
 .lib-status{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; padding:2px 7px; border-radius:10px; background:var(--card-2); color:var(--text-soft); }
+.cover-edit{ align-self:center; flex:none; font-size:10.5px; font-weight:600; color:var(--accent-deep); background:var(--card-2); border:1px solid var(--line); border-radius:9px; padding:6px 10px; white-space:nowrap; }
+.cover-edit:hover{ background:var(--ground); }
 
 /* Achievements / themes / profile */
 .ach-grid{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }

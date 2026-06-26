@@ -47,7 +47,8 @@ async function googleBooksLookup(isbn: string): Promise<{ pages: number | null; 
   }
 }
 
-const firstAuthor = (a: string | null) => (a ?? "").split(/[,;]/)[0].trim();
+const firstAuthor = (a: string | null) => (a ?? "").replace(/\(.*?\)/g, "").split(/[,;]/)[0].trim();
+const cleanTitle = (t: string) => t.split(/\s*:\s|\s[–—-]\s|\s*\(/)[0].trim();
 
 // Cover fallbacks by title/author — catch audiobooks (ASIN) and odd editions
 // that ISBN lookups miss.
@@ -151,9 +152,16 @@ export async function POST() {
         if (g) { if (!pages) pages = g.pages; if (!year) year = g.year; if (!cover) cover = g.cover; }
       }
     }
-    // Cover fallback by title/author (works even without an ISBN).
-    if (!cover) cover = await olSearchCover(b.title, b.author);
-    if (!cover) cover = await googleSearchCover(b.title, b.author);
+    // Cover fallback by title/author — cleaned, with a title-only retry
+    // (catches audiobooks/ASINs and editions ISBN lookups miss).
+    if (!cover) {
+      const t = cleanTitle(b.title);
+      const a = firstAuthor(b.author);
+      cover = await olSearchCover(t, a);
+      if (!cover) cover = await googleSearchCover(t, a);
+      if (!cover) cover = await olSearchCover(t, null);
+      if (!cover) cover = await googleSearchCover(t, null);
+    }
 
     if (pages) patch.pages = pages;
     if (year) patch.publish_year = year;
