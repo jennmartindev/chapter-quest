@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { IconMail } from "./icons";
 
-type View = "signin" | "signup" | "confirm";
+type View = "signin" | "signup" | "confirm" | "forgot";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -17,15 +17,21 @@ export default function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
 
-  const redirectTo = () =>
-    `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")}/auth/callback`;
+  const redirectTo = (next?: string) =>
+    `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setMsg(null);
     try {
-      if (view === "signup") {
+      if (view === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: redirectTo("/auth/reset-password"),
+        });
+        if (error) throw error;
+        setMsg({ kind: "ok", text: "If that email has an account, a reset link is on its way. Open it in this same browser." });
+      } else if (view === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -99,7 +105,11 @@ export default function LoginForm() {
         <div className="brand">
           <div className="wm wm-auth"><span className="de">Dog Ears</span><span className="dn"><i>&amp;</i> Dunes</span></div>
           <p className="sub">
-            {view === "signin" ? "Welcome back to your reading challenges." : "Track every reading challenge in one place."}
+            {view === "signin"
+              ? "Welcome back to your reading challenges."
+              : view === "forgot"
+                ? "Enter your email and we’ll send a link to set a new password."
+                : "Track every reading challenge in one place."}
           </p>
         </div>
 
@@ -116,20 +126,28 @@ export default function LoginForm() {
             <label htmlFor="email">Email</label>
             <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
           </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
+          {view !== "forgot" && (
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+          )}
           <button className="submit" type="submit" disabled={busy}>
-            {busy ? "One moment…" : view === "signin" ? "Sign in" : "Create account"}
+            {busy ? "One moment…" : view === "signin" ? "Sign in" : view === "forgot" ? "Send reset link" : "Create account"}
           </button>
         </form>
+
+        {view === "signin" && (
+          <div className="toggle" style={{ marginTop: 10 }}>
+            <button onClick={() => { setView("forgot"); setMsg(null); }}>Forgot password?</button>
+          </div>
+        )}
 
         <div className="toggle">
           {view === "signin" ? (
             <>New here? <button onClick={() => { setView("signup"); setMsg(null); }}>Create an account</button></>
           ) : (
-            <>Already have an account? <button onClick={() => { setView("signin"); setMsg(null); }}>Sign in</button></>
+            <>{view === "forgot" ? "Remembered it?" : "Already have an account?"} <button onClick={() => { setView("signin"); setMsg(null); }}>Sign in</button></>
           )}
         </div>
       </div>
