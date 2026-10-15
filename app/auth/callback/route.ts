@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { publicOrigin } from "@/lib/origin";
 
 // Handles the redirect from Supabase email-confirmation / magic / recovery links.
 // Supports both the PKCE `?code=` style and the `?token_hash=&type=` style.
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = publicOrigin(request);
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
