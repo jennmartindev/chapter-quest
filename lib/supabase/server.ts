@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { SUPABASE_URL, SUPABASE_KEY } from "./env";
+import { SUPABASE_URL, SUPABASE_KEY, SUPABASE_SCHEMA } from "./env";
 
 // Server-side Supabase client for Server Components, Route Handlers, and Server Actions.
 // Reads/writes the auth session from the request cookies.
@@ -10,6 +10,7 @@ export function createClient() {
     SUPABASE_URL,
     SUPABASE_KEY,
     {
+      db: { schema: SUPABASE_SCHEMA },
       cookies: {
         getAll() {
           return cookieStore.getAll();

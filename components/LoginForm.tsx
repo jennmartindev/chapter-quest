@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { IconMail } from "./icons";
 
-type View = "signin" | "signup" | "confirm" | "forgot";
+type View = "signin" | "forgot";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -13,7 +12,6 @@ export default function LoginForm() {
   const [view, setView] = useState<View>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
 
@@ -31,19 +29,6 @@ export default function LoginForm() {
         });
         if (error) throw error;
         setMsg({ kind: "ok", text: "If that email has an account, a reset link is on its way. Open it in this same browser." });
-      } else if (view === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { display_name: name || email.split("@")[0] }, emailRedirectTo: redirectTo() },
-        });
-        if (error) throw error;
-        if (data.session) {
-          router.push("/");
-          router.refresh();
-        } else {
-          setView("confirm"); // dedicated "check your inbox" screen
-        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -57,48 +42,7 @@ export default function LoginForm() {
     }
   }
 
-  async function resend() {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: { emailRedirectTo: redirectTo() },
-      });
-      if (error) throw error;
-      setMsg({ kind: "ok", text: "Sent again — check your inbox." });
-    } catch (err) {
-      setMsg({ kind: "err", text: err instanceof Error ? err.message : "Couldn't resend." });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // ---- Dedicated confirmation screen ----
-  if (view === "confirm") {
-    return (
-      <div className="auth-wrap" data-theme="sage">
-        <div className="auth-card confirm">
-          <div className="ic"><IconMail size={28} /></div>
-          <h1>Check your inbox</h1>
-          <p>
-            We sent a confirmation link to <span className="email">{email}</span>. Open it to verify
-            your account, then come back and sign in.
-          </p>
-          {msg && <div className={`auth-msg ${msg.kind}`} style={{ marginTop: 16 }}>{msg.text}</div>}
-          <div className="actions">
-            <button className="submit" onClick={() => { setView("signin"); setMsg(null); }}>Back to sign in</button>
-            <button className="linkbtn" onClick={resend} disabled={busy}>
-              {busy ? "Sending…" : "Didn’t get it? Resend email"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Sign in / sign up ----
+  // ---- Sign in. Accounts are invite-only, so there is no signup here. ----
   return (
     <div className="auth-wrap" data-theme="sage">
       <div className="auth-card">
@@ -107,21 +51,13 @@ export default function LoginForm() {
           <p className="sub">
             {view === "signin"
               ? "Welcome back to your reading challenges."
-              : view === "forgot"
-                ? "Enter your email and we’ll send a link to set a new password."
-                : "Track every reading challenge in one place."}
+              : "Enter your email and we’ll send a link to set a new password."}
           </p>
         </div>
 
         {msg && <div className={`auth-msg ${msg.kind}`}>{msg.text}</div>}
 
         <form onSubmit={submit}>
-          {view === "signup" && (
-            <div className="field">
-              <label htmlFor="name">Display name</label>
-              <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jenn" />
-            </div>
-          )}
           <div className="field">
             <label htmlFor="email">Email</label>
             <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
@@ -133,7 +69,7 @@ export default function LoginForm() {
             </div>
           )}
           <button className="submit" type="submit" disabled={busy}>
-            {busy ? "One moment…" : view === "signin" ? "Sign in" : view === "forgot" ? "Send reset link" : "Create account"}
+            {busy ? "One moment…" : view === "signin" ? "Sign in" : "Send reset link"}
           </button>
         </form>
 
@@ -144,10 +80,8 @@ export default function LoginForm() {
         )}
 
         <div className="toggle">
-          {view === "signin" ? (
-            <>New here? <button onClick={() => { setView("signup"); setMsg(null); }}>Create an account</button></>
-          ) : (
-            <>{view === "forgot" ? "Remembered it?" : "Already have an account?"} <button onClick={() => { setView("signin"); setMsg(null); }}>Sign in</button></>
+          {view === "forgot" && (
+            <>Remembered it? <button onClick={() => { setView("signin"); setMsg(null); }}>Sign in</button></>
           )}
         </div>
       </div>

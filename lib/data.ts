@@ -66,8 +66,13 @@ export async function syncSharedProgress(): Promise<void> {
 
 export async function getProfile(): Promise<Profile | null> {
   const supabase = createClient();
-  const { data } = await supabase.from("profiles").select("*").single();
-  return data as Profile | null;
+  const { data } = await supabase.from("profiles").select("*").maybeSingle();
+  if (data) return data as Profile;
+
+  // First visit: the database no longer does this on signup, because other apps share its accounts.
+  await supabase.rpc("bootstrap_user");
+  const { data: created } = await supabase.from("profiles").select("*").maybeSingle();
+  return created as Profile | null;
 }
 
 interface LoadResult {
