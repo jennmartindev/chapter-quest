@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 type View = "signin" | "forgot";
 
@@ -15,8 +17,11 @@ export default function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
 
-  const redirectTo = (next?: string) =>
-    `${process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "auth") {
+      setMsg({ kind: "err", text: "That link didn’t work or has expired. Please request a new one." });
+    }
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,11 +29,17 @@ export default function LoginForm() {
     setMsg(null);
     try {
       if (view === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: redirectTo("/auth/reset-password"),
+        // The default PKCE flow only works in the browser that asked for the link. Reset emails often
+        // open somewhere else, such as a mail app, so this one flow carries its session in the link.
+        const resetClient = createPlainClient(SUPABASE_URL, SUPABASE_KEY, {
+          auth: { flowType: "implicit", persistSession: false, detectSessionInUrl: false },
+        });
+        const site = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+        const { error } = await resetClient.auth.resetPasswordForEmail(email, {
+          redirectTo: `${site}/auth/reset-password`,
         });
         if (error) throw error;
-        setMsg({ kind: "ok", text: "If that email has an account, a reset link is on its way. Open it in this same browser." });
+        setMsg({ kind: "ok", text: "If that email has an account, a reset link is on its way. It works in any browser." });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

@@ -15,7 +15,21 @@ export default function ResetPasswordForm() {
   const [msg, setMsg] = useState<{ kind: "err" | "ok"; text: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setHasSession(!!data.user));
+    async function start() {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (access_token && refresh_token) {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        // Take the tokens out of the address bar and browser history.
+        window.history.replaceState(null, "", window.location.pathname);
+        setHasSession(!error);
+        return;
+      }
+      const { data } = await supabase.auth.getUser();
+      setHasSession(!!data.user);
+    }
+    start();
   }, [supabase]);
 
   async function submit(e: React.FormEvent) {
