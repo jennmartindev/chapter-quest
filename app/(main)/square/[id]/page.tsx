@@ -32,11 +32,13 @@ export default async function SquarePage({ params }: { params: { id: string } })
         .map((o) => ({ name: squareName.get(o.square_id) ?? "", tag: squareTag.get(o.square_id) ?? "" }));
       return {
         id: r.book_id,
-        title: r.pick_title ?? own?.title ?? "Book",
+        title: own?.title ?? r.pick_title ?? "Book",
+        author: own?.author ?? null,
+        mine: r.user_id === load.userId,
         readStatus: own?.read_status ?? null,
         g1: own?.cover_g1 ?? "#617E74",
         g2: own?.cover_g2 ?? "#3f5238",
-        cover: r.pick_cover ?? own?.cover_url ?? null,
+        cover: own?.cover_url ?? r.pick_cover ?? null,
         alsoFills,
       };
     });
@@ -44,6 +46,15 @@ export default async function SquarePage({ params }: { params: { id: string } })
   const hereIds = new Set(here.map((h) => h.id));
   const books = load.books.filter((b) => !hereIds.has(b.id));
   const dipCount = here.filter((h) => h.alsoFills.some((a) => a.tag !== challenge!.tag)).length;
+
+  const cardPicks = load.bookSquares
+    .filter((r) => r.challenge_id === challenge!.id)
+    .map((r) => ({
+      bookId: r.book_id,
+      title: bookById.get(r.book_id)?.title ?? r.pick_title ?? "",
+      squareId: r.square_id,
+      squareName: squareName.get(r.square_id) ?? "another square",
+    }));
 
   const myStatus = square.memberProgress?.find((m) => m.userId === load.userId)?.status ?? null;
 
@@ -65,6 +76,7 @@ export default async function SquarePage({ params }: { params: { id: string } })
         memberProgress={square.memberProgress ?? []}
         currentUserId={load.userId}
         here={here}
+        cardPicks={cardPicks}
         books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, cover: b.cover_url, status: b.read_status }))}
       />
     </>

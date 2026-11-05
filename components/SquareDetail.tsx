@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShell } from "./Shell";
+import CoverEdit from "./CoverEdit";
+import { OnlineResults, saveFoundBook, useBookSearch } from "./FindBook";
 import { readerColor } from "@/lib/board";
+import { cardRuleWarning, type CardPick, type FoundBook } from "@/lib/books";
 
-interface HereBook { id: string; title: string; readStatus: string | null; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
+interface HereBook { id: string; title: string; author: string | null; mine: boolean; readStatus: string | null; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
 interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; cover: string | null; status: string; }
 interface MemberProg { userId: string; name: string; status: "reading" | "done" | null; }
 
@@ -23,12 +26,14 @@ export default function SquareDetail(props: {
   squareId: string; squareName: string; rule: string; need: number;
   challengeName: string; challengeTag: string; templateKey: string; maxPerBook: number;
   dipCount: number; shared: boolean; myStatus: "reading" | "done" | null; memberProgress: MemberProg[];
-  currentUserId: string; here: HereBook[]; books: LibBook[];
+  currentUserId: string; here: HereBook[]; books: LibBook[]; cardPicks: CardPick[];
 }) {
   const router = useRouter();
   const { toast } = useShell();
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  const [replacing, setReplacing] = useState<HereBook | null>(null);
+  const searchTop = useRef<HTMLDivElement>(null);
 
   const results = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -38,11 +43,49 @@ export default function SquareDetail(props: {
   }, [q, props.books]);
   const shown = q.trim() ? results.slice(0, 30) : results.slice(0, 12);
 
+  const online = useBookSearch(q);
+
   async function assign(book_id: string, title: string) {
     setBusy(book_id);
     const res = await fetch("/api/book-squares", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id, square_id: props.squareId }) });
     setBusy(null);
     if (res.ok) { toast(`Added “${title}”`); router.refresh(); } else toast("Couldn't add that");
+  }
+
+  // A new book may not be the one you marked read, so ask rather than assume.
+  async function confirmProgressAfterSwap(title: string) {
+    if (!props.shared || props.myStatus !== "done") return;
+    const kept = window.confirm(`You were marked read on this square. Have you read “${title}” too?\n\nOK keeps it marked read. Cancel sets it back to not started.`);
+    await fetch("/api/square-progress", kept
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ square_id: props.squareId, status: "done" }) }
+      : { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ square_id: props.squareId }) });
+  }
+
+  async function replace(old: HereBook, book_id: string, title: string) {
+    setBusy(book_id);
+    const res = await fetch("/api/book-squares", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ old_book_id: old.id, new_book_id: book_id, square_id: props.squareId }) });
+    if (res.ok) await confirmProgressAfterSwap(title);
+    setBusy(null);
+    if (res.ok) { toast(`Replaced with “${title}”`); setReplacing(null); setQ(""); router.refresh(); } else toast("Couldn't replace that");
+  }
+
+  /** Adds a book or swaps it in, after checking the card's rule about reusing books. */
+  async function place(book_id: string, title: string) {
+    const warning = cardRuleWarning({ id: book_id, title }, props.cardPicks, props.squareId, props.maxPerBook);
+    if (warning && !window.confirm(warning)) return;
+    if (replacing) await replace(replacing, book_id, title);
+    else await assign(book_id, title);
+  }
+
+  async function placeFound(book: FoundBook) {
+    const warning = cardRuleWarning({ title: book.title }, props.cardPicks, props.squareId, props.maxPerBook);
+    if (warning && !window.confirm(warning)) return;
+    setBusy(book.key);
+    const saved = await saveFoundBook(book);
+    setBusy(null);
+    if (!saved) return toast("Couldn't add that book");
+    if (replacing) await replace(replacing, saved.id, book.title);
+    else await assign(saved.id, book.title);
   }
   async function remove(book_id: string) {
     setBusy(book_id);
@@ -67,13 +110,19 @@ export default function SquareDetail(props: {
 
   const search = (
     <>
-      <div className="section-title"><h2 style={{ fontSize: 16 }}>{props.here.length ? "Add another book" : "Pick a book"}</h2></div>
+      <div className="section-title" ref={searchTop}><h2 style={{ fontSize: 16 }}>{replacing ? "Replace with" : props.here.length ? "Add another book" : "Pick a book"}</h2></div>
+      {replacing && (
+        <div className="replacing" role="status">
+          <span>Replacing <b>{replacing.title}</b></span>
+          <button type="button" className="chbtn" onClick={() => setReplacing(null)}>Cancel</button>
+        </div>
+      )}
       <div className="searchbar">
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search your library (${props.books.length} books)…`} />
+        <input type="search" aria-label="Search your library or find a book online" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search your library or find any book…" />
       </div>
       {shown.length === 0 ? (
         <p className="muted" style={{ fontSize: 12.5, padding: "8px 2px" }}>
-          {props.books.length === 0 ? "Your library is empty — import your StoryGraph CSV first." : "No books match that search."}
+          {props.books.length === 0 ? "Your library is empty. Search above to find a book online." : "No books in your library match that search."}
         </p>
       ) : (
         shown.map((b) => (
@@ -81,12 +130,21 @@ export default function SquareDetail(props: {
             <div className="cover" style={coverStyle(b.cover, b.g1, b.g2)} />
             <div className="mt"><b>{b.title}</b><span>{b.author ?? ""}</span></div>
             <span className={`bstat s-${b.status}`}>{STATUS_LABEL[b.status] ?? b.status}</span>
-            <button className="add" disabled={busy === b.id} onClick={() => assign(b.id, b.title)}>Add</button>
+            <button className="add" disabled={busy === b.id} onClick={() => place(b.id, b.title)}>{replacing ? "Use this" : "Add"}</button>
           </div>
         ))
       )}
+      <OnlineResults query={q} status={online.status} results={online.results} busy={busy} actionLabel={replacing ? "Use this" : "Add"} onPick={placeFound} />
     </>
   );
+
+  // Only your own pick can be changed. Someone else's stays theirs, as the database enforces too.
+  const pickActions = (h: HereBook) => h.mine ? (
+    <div className="pick-actions">
+      <button type="button" className="cover-edit" onClick={() => { setReplacing(h); searchTop.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>Replace</button>
+      <CoverEdit bookId={h.id} title={h.title} author={h.author} hasCover={!!h.cover} />
+    </div>
+  ) : null;
 
   const head = (
     <div className="detail-head">
@@ -131,8 +189,8 @@ export default function SquareDetail(props: {
         {props.here.map((h) => (
           <div className="match" key={h.id}>
             <div className="cover" style={coverStyle(h.cover, h.g1, h.g2)} />
-            <div className="mt"><b>{h.title}</b><span>shared pick</span></div>
-            <button className="add ghost" disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>
+            <div className="mt"><b>{h.title}</b><span>{h.mine ? "your pick" : "shared pick"}</span>{pickActions(h)}</div>
+            {h.mine && <button className="add ghost" aria-label={`Remove ${h.title}`} disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>}
           </div>
         ))}
         {search}
@@ -174,14 +232,14 @@ export default function SquareDetail(props: {
           {props.here.map((h) => (
             <div className="match" key={h.id}>
               <div className="cover" style={coverStyle(h.cover, h.g1, h.g2)} />
-              <div className="mt"><b>{h.title}</b><span>{h.alsoFills.length ? "also fills: " + h.alsoFills.map((a) => a.name).join(", ") : "candidate for this square"}</span></div>
+              <div className="mt"><b>{h.title}</b><span>{h.alsoFills.length ? "also fills: " + h.alsoFills.map((a) => a.name).join(", ") : "candidate for this square"}</span>{pickActions(h)}</div>
               <select className="bsel" value={h.readStatus ?? "to-read"} disabled={busy === h.id} onChange={(e) => setBookStatus(h.id, e.target.value)}>
                 <option value="to-read">Want to read</option>
                 <option value="currently-reading">Reading</option>
                 <option value="read">Read</option>
                 <option value="did-not-finish">DNF</option>
               </select>
-              <button className="add ghost" disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>
+              <button className="add ghost" aria-label={`Remove ${h.title}`} disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>
             </div>
           ))}
         </>

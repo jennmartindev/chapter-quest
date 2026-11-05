@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loadEverything } from "@/lib/data";
 import CoverEdit from "@/components/CoverEdit";
+import LibraryAddBook from "@/components/LibraryAddBook";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,8 @@ export default async function LibraryPage() {
         Every book lives here once and lights up squares on every challenge it qualifies for.
       </p>
 
+      <LibraryAddBook />
+
       {load.books.length === 0 ? (
         <div className="empty">
           Your library is empty.
@@ -64,7 +67,7 @@ export default async function LibraryPage() {
                   )}
                 </div>
               </div>
-              <CoverEdit bookId={b.id} hasCover={!!b.cover_url} />
+              <CoverEdit bookId={b.id} title={b.title} author={b.author} hasCover={!!b.cover_url} />
             </div>
           );
         })

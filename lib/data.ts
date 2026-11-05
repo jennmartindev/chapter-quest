@@ -80,6 +80,7 @@ interface LoadResult {
   books: Book[];
   bookSquares: {
     id: string;
+    user_id: string;
     book_id: string;
     challenge_id: string;
     square_id: string;

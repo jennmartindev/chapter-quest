@@ -395,3 +395,28 @@ input{ font-family:inherit; }
   .qt-star{ font-size:16px; top:5px; left:5px; }
 }
 @media (prefers-reduced-motion:reduce){ .qt{ transition:none; } .qt:active{ transform:none; } }
+
+/* Finding books and choosing covers */
+.add-book{ margin-bottom:18px; }
+.add-book-label{ display:block; margin:0 2px 6px; font-size:13px; font-weight:700; color:var(--text); }
+.add-book .section-title{ margin-top:12px; }
+.found-cover{ background:linear-gradient(160deg, var(--card-2), var(--line)); }
+.replacing{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px; padding:9px 12px; border-radius:12px; background:var(--card-2); font-size:12.5px; color:var(--text); }
+.pick-actions{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+/* Readable in every theme, and big enough to tap. */
+.cover-edit{ color:var(--text); min-height:34px; padding-left:11px; padding-right:11px; }
+.sheet-back{ position:fixed; inset:0; z-index:50; display:flex; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.55); }
+.sheet{ width:100%; max-width:520px; max-height:85dvh; overflow-y:auto; padding:18px 16px max(18px, env(safe-area-inset-bottom)); border-radius:20px 20px 0 0; background:var(--card); color:var(--text); }
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.sheet-head h2{ font-size:18px; }
+.sheet-title{ margin:2px 0 12px; font-size:12.5px; }
+.cover-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.cover-opt{ padding:0; border:none; border-radius:7px; overflow:hidden; aspect-ratio:2/3; background:var(--card-2); cursor:pointer; }
+.cover-opt:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.cover-opt img{ display:block; width:100%; height:100%; object-fit:cover; }
+.cover-paste label{ display:block; margin-bottom:5px; font-size:12px; font-weight:600; color:var(--text-soft); }
+.cover-paste-row{ display:flex; gap:8px; }
+.cover-paste-row input{ flex:1; min-width:0; padding:9px 11px; border-radius:10px; border:1px solid var(--line); background:var(--ground); color:var(--text); font-size:16px; }
+.cover-error{ margin-top:8px; font-size:12.5px; color:#C65A4A; }
+.cover-remove{ margin-top:14px; }
+@media (min-width:700px){ .sheet-back{ align-items:center; } .sheet{ border-radius:20px; } }

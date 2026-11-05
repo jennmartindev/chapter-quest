@@ -59,3 +59,45 @@ export async function DELETE(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+export async function PUT(request: Request) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { old_book_id, new_book_id, square_id } = await request.json().catch(() => ({}));
+  if (!old_book_id || !new_book_id || !square_id) {
+    return NextResponse.json({ error: "old_book_id, new_book_id and square_id required" }, { status: 400 });
+  }
+  if (old_book_id === new_book_id) return NextResponse.json({ ok: true });
+
+  const { data: old } = await supabase
+    .from("book_squares")
+    .select("challenge_id, status, why")
+    .eq("book_id", old_book_id)
+    .eq("square_id", square_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!old) return NextResponse.json({ error: "pick not found" }, { status: 404 });
+
+  const { data: book } = await supabase.from("books").select("id").eq("id", new_book_id).eq("user_id", user.id).maybeSingle();
+  if (!book) return NextResponse.json({ error: "book not found" }, { status: 404 });
+
+  // New pick first: if the second step fails, the square still has a book rather than none.
+  const { error: addError } = await supabase.from("book_squares").upsert(
+    { user_id: user.id, book_id: new_book_id, square_id, challenge_id: old.challenge_id, why: old.why, status: old.status },
+    { onConflict: "book_id,square_id" }
+  );
+  if (addError) return NextResponse.json({ error: addError.message }, { status: 500 });
+
+  const { error: removeError } = await supabase
+    .from("book_squares")
+    .delete()
+    .eq("book_id", old_book_id)
+    .eq("square_id", square_id)
+    .eq("user_id", user.id);
+  if (removeError) return NextResponse.json({ error: removeError.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
