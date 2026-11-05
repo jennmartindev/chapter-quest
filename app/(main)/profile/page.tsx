@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getProfile, loadEverything } from "@/lib/data";
+import NotificationSettings from "@/components/NotificationSettings";
 import { IconUpload, IconCompass, IconBooks, IconTarget, IconPalette, IconAward, IconChevron } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export default async function ProfilePage() {
           Juggling {challengeCount} challenge{challengeCount === 1 ? "" : "s"} · {load.books.length} books in your library
         </p>
       </div>
+
+      <div className="section-title"><h2 style={{ fontSize: 16 }}>Notifications</h2></div>
+      <NotificationSettings initialFinished={profile?.notify_finished ?? true} />
 
       <div className="section-title"><h2 style={{ fontSize: 16 }}>Tools</h2></div>
       <Link href="/import" className="feat"><div className="ic"><IconUpload size={18} /></div><div className="t"><b>Import StoryGraph CSV</b><span>Read history &amp; TBR</span></div><span className="chev"><IconChevron size={16} /></span></Link>

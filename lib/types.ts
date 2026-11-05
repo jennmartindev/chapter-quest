@@ -7,6 +7,7 @@ export interface Profile {
   display_name: string | null;
   theme: string;
   streak: number;
+  notify_finished?: boolean;
 }
 
 export interface Challenge {

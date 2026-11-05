@@ -12,6 +12,7 @@ export async function PATCH(request: Request) {
   const patch: Record<string, unknown> = {};
   if (typeof body.theme === "string") patch.theme = body.theme;
   if (typeof body.display_name === "string") patch.display_name = body.display_name;
+  if (typeof body.notify_finished === "boolean") patch.notify_finished = body.notify_finished;
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "nothing to update" }, { status: 400 });
   }
