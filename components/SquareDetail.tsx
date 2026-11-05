@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShell } from "./Shell";
+import { readerColor } from "@/lib/board";
 
 interface HereBook { id: string; title: string; readStatus: string | null; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
 interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; cover: string | null; status: string; }
@@ -115,9 +116,9 @@ export default function SquareDetail(props: {
         {others.length > 0 && (
           <>
             <div className="section-title"><h2 style={{ fontSize: 16 }}>Everyone</h2></div>
-            {props.memberProgress.map((m) => (
+            {props.memberProgress.map((m, i) => (
               <div className="memrow" key={m.userId}>
-                <i className={`md ${m.status ? "md-" + m.status : "md-none"}`}>{initial(m.name)}</i>
+                <i className="md" style={{ background: m.status === "done" ? readerColor(i) : "transparent", borderColor: readerColor(i), borderStyle: m.status === "reading" ? "dashed" : "solid", borderWidth: 2, color: m.status === "done" ? "#10181a" : "var(--text)" }}>{initial(m.name)}</i>
                 <b>{m.name}{m.userId === props.currentUserId ? " (you)" : ""}</b>
                 <span className="memstat">{m.status === "done" ? "Read" : m.status === "reading" ? "Reading" : "Not started"}</span>
               </div>
