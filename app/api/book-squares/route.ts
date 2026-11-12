@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { book_id, square_id, why, status } = await request.json().catch(() => ({}));
+  const { book_id, square_id, why, status, slot_id } = await request.json().catch(() => ({}));
   if (!book_id || !square_id) {
     return NextResponse.json({ error: "book_id and square_id required" }, { status: 400 });
   }
@@ -33,9 +33,37 @@ export async function POST(request: Request) {
       challenge_id: sq.challenge_id,
       why: why ?? null,
       status: st,
+      ...(typeof slot_id === "string" || slot_id === null ? { slot_id } : {}),
     },
     { onConflict: "book_id,square_id" }
   );
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+// File a pick under one of the square's slots (or take it out with slot_id: null).
+export async function PATCH(request: Request) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { book_id, square_id, slot_id } = await request.json().catch(() => ({}));
+  if (!book_id || !square_id || (slot_id !== null && typeof slot_id !== "string")) {
+    return NextResponse.json({ error: "book_id, square_id and slot_id required" }, { status: 400 });
+  }
+  if (slot_id) {
+    // The slot has to belong to this square (RLS already limits it to your own slots).
+    const { data: slot } = await supabase.from("square_slots").select("square_id").eq("id", slot_id).maybeSingle();
+    if (!slot || slot.square_id !== square_id) return NextResponse.json({ error: "slot not on this square" }, { status: 400 });
+  }
+  const { error } = await supabase
+    .from("book_squares")
+    .update({ slot_id })
+    .eq("book_id", book_id)
+    .eq("square_id", square_id)
+    .eq("user_id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

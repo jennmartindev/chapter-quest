@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isCoverUrl, sameTitle } from "@/lib/books";
 import { readerToday } from "@/lib/format";
 
-const STATUSES = ["to-read", "currently-reading", "read", "did-not-finish"];
+const STATUSES = ["to-read", "currently-reading", "paused", "read", "did-not-finish"];
 
 // Update a book's reading status (drives square completion: 'read' = complete,
 // 'currently-reading' = in progress).

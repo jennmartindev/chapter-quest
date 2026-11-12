@@ -55,3 +55,28 @@ export function squareLabel(title: string | null, prompt: string, progress: Memb
   const who = progress.map((p) => `${p.name} ${statusWord(p.status)}`).join(", ");
   return [title ?? "No book yet", prompt, who].filter(Boolean).join(". ");
 }
+
+/** One pick on a square: its book's status for this challenge, and the slot it's filed under. */
+export interface SquarePick { status: string; slotId: string | null }
+
+/**
+ * How far along a solo square is. A square with slots (Rainbow: Red, Orange, …) counts each slot
+ * once, so two red titles fill one slot, and a pick not filed under a slot is still just an option.
+ * A square without slots counts its read books. "read" here already means read during the challenge.
+ */
+export function squareProgress(
+  need: number,
+  picks: SquarePick[],
+  slotIds: string[]
+): { logged: number; state: "empty" | "options" | "progress" | "done" } {
+  let logged: number;
+  if (slotIds.length > 0) {
+    const slots = new Set(slotIds);
+    logged = new Set(picks.filter((p) => p.status === "read" && p.slotId && slots.has(p.slotId)).map((p) => p.slotId)).size;
+  } else {
+    logged = picks.filter((p) => p.status === "read").length;
+  }
+  const reading = picks.some((p) => p.status === "currently-reading");
+  const state = logged >= need ? "done" : logged > 0 || reading ? "progress" : picks.length > 0 ? "options" : "empty";
+  return { logged, state };
+}

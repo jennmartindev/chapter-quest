@@ -9,6 +9,7 @@ const cls = (tag: string) => tag.toLowerCase().replace(/[^a-z0-9]/g, "");
 const STATUS_LABEL: Record<string, string> = {
   read: "Read",
   "currently-reading": "Reading",
+  paused: "Paused",
   "to-read": "TBR",
   "did-not-finish": "DNF",
 };

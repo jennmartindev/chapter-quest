@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
+  SquareSlot,
   Book,
   Challenge,
   ChallengeWithSquares,
@@ -10,6 +11,7 @@ import type {
 } from "./types";
 import type { OptInput, Candidate } from "./optimizer";
 import { readInWindow } from "./format";
+import { squareProgress, type SquarePick } from "./board";
 
 const norm = (t: string | null) => (t ?? "").toLowerCase().trim();
 
@@ -99,7 +101,9 @@ interface LoadResult {
     status: string;
     pick_title: string | null;
     pick_cover: string | null;
+    slot_id: string | null;
   }[];
+  slots: SquareSlot[];
   userId: string;
 }
 
@@ -110,7 +114,7 @@ export async function loadEverything(): Promise<LoadResult> {
   } = await supabase.auth.getUser();
   const uid = user?.id ?? "";
 
-  const [{ data: challenges }, { data: squares }, { data: books }, { data: bookSquares }, { data: members }, { data: progress }] =
+  const [{ data: challenges }, { data: squares }, { data: books }, { data: bookSquares }, { data: members }, { data: progress }, { data: slotRows }] =
     await Promise.all([
       supabase.from("challenges").select("*").eq("archived", false).order("template_key"),
       supabase.from("squares").select("*").order("position"),
@@ -118,7 +122,14 @@ export async function loadEverything(): Promise<LoadResult> {
       supabase.from("book_squares").select("*"),
       supabase.from("challenge_members").select("*"),
       supabase.from("square_progress").select("*"),
+      supabase.from("square_slots").select("id, square_id, position, label").order("position"),
     ]);
+  const slots = (slotRows ?? []) as SquareSlot[];
+  const slotIdsBySquare = new Map<string, string[]>();
+  for (const sl of slots) {
+    if (!slotIdsBySquare.has(sl.square_id)) slotIdsBySquare.set(sl.square_id, []);
+    slotIdsBySquare.get(sl.square_id)!.push(sl.id);
+  }
 
   const bs = (bookSquares ?? []) as LoadResult["bookSquares"];
   const bookList = (books ?? []) as Book[];
@@ -136,14 +147,14 @@ export async function loadEverything(): Promise<LoadResult> {
     const w = windowByChallenge.get(challengeId);
     return w && readInWindow(b.date_read, w.start, w.end) ? "read" : "to-read";
   };
-  const ownStatusesBySquare = new Map<string, string[]>(); // solo: assigned books' read status
+  const ownPicksBySquare = new Map<string, SquarePick[]>(); // solo: assigned books' status + slot
   const picksBySquare = new Map<string, number>(); // any challenge: # of picks
   for (const r of bs) {
     picksBySquare.set(r.square_id, (picksBySquare.get(r.square_id) ?? 0) + 1);
     const rs = statusFor(r.book_id, r.challenge_id);
     if (rs) {
-      if (!ownStatusesBySquare.has(r.square_id)) ownStatusesBySquare.set(r.square_id, []);
-      ownStatusesBySquare.get(r.square_id)!.push(rs);
+      if (!ownPicksBySquare.has(r.square_id)) ownPicksBySquare.set(r.square_id, []);
+      ownPicksBySquare.get(r.square_id)!.push({ status: rs, slotId: r.slot_id ?? null });
     }
   }
 
@@ -188,19 +199,9 @@ export async function loadEverything(): Promise<LoadResult> {
         return { ...s, logged: state === "done" ? s.need : 0, state, memberProgress };
       }
 
-      // solo: derive from the user's own books' read status
-      const statuses = ownStatusesBySquare.get(s.id) ?? [];
-      const readCount = statuses.filter((x) => x === "read").length;
-      const readingCount = statuses.filter((x) => x === "currently-reading").length;
-      const done = readCount >= s.need;
-      const state: SquareProgress["state"] = done
-        ? "done"
-        : readingCount > 0 || readCount > 0
-        ? "progress"
-        : statuses.length > 0
-        ? "options"
-        : "empty";
-      return { ...s, logged: readCount, state };
+      // solo: derive from the user's own books' read status, one book per slot where the square has slots
+      const { logged, state } = squareProgress(s.need, ownPicksBySquare.get(s.id) ?? [], slotIdsBySquare.get(s.id) ?? []);
+      return { ...s, logged, state };
     });
 
     return {
@@ -213,7 +214,7 @@ export async function loadEverything(): Promise<LoadResult> {
     };
   });
 
-  return { challenges: enriched, books: bookList, bookSquares: bs, userId: uid };
+  return { challenges: enriched, books: bookList, bookSquares: bs, slots, userId: uid };
 }
 
 // Optimizer inputs: each to-read book + the candidate squares it could fill.
@@ -246,7 +247,7 @@ export function buildOptimizerInputs(load: LoadResult): OptInput[] {
   }
 
   return load.books
-    .filter((b) => b.read_status === "to-read" || b.read_status === "currently-reading")
+    .filter((b) => b.read_status === "to-read" || b.read_status === "currently-reading" || b.read_status === "paused")
     .map((b) => ({ book: b, candidates: candidatesByBook.get(b.id) ?? [] }))
     .filter((i) => i.candidates.length > 0);
 }

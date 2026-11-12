@@ -130,3 +130,53 @@ describe("cardRuleWarning", () => {
     expect(cardRuleWarning({ id: "b1", title: "Shift" }, twice, "s9", 2)).toContain("only 2 squares");
   });
 });
+
+import { importChanges, toIsoDate, parseStoryGraphRow } from "./storygraph";
+
+describe("re-import", () => {
+  it("marks a book read when the new export says so, with its date and rating", () => {
+    expect(importChanges({ read_status: "to-read", date_read: null, star_rating: null }, { read_status: "read", date_read: "2026-11-09", star_rating: 4.5 }))
+      .toEqual({ read_status: "read", date_read: "2026-11-09", star_rating: 4.5 });
+  });
+  it("leaves an unchanged book alone", () => {
+    expect(importChanges({ read_status: "read", date_read: "2026-10-05", star_rating: 4 }, { read_status: "read", date_read: "2026-10-05", star_rating: 4 })).toBeNull();
+  });
+  it("never un-reads a book marked read in the app", () => {
+    expect(importChanges({ read_status: "read", date_read: "2026-11-12", star_rating: null }, { read_status: "to-read", date_read: null, star_rating: null })).toBeNull();
+  });
+});
+
+describe("StoryGraph dates and statuses", () => {
+  it("reads slashed, hyphenated and ranged dates", () => {
+    expect(toIsoDate("2026/07/28")).toBe("2026-07-28");
+    expect(toIsoDate("2026-07-28")).toBe("2026-07-28");
+    expect(toIsoDate("2026/03/01-2026/03/09")).toBe("2026-03-01");
+    expect(toIsoDate("2026-3-1 – 2026-3-9")).toBe("2026-03-01");
+  });
+  it("keeps paused books as paused", () => {
+    expect(parseStoryGraphRow({ Title: "T", "Read Status": "paused" })?.read_status).toBe("paused");
+  });
+});
+
+import { findBook, slotPositions } from "./plan";
+
+describe("plan import matching", () => {
+  const lib = [
+    { title: "Marple: Twelve New Mysteries", author: "Agatha Christie" },
+    { title: "Home", author: "Nnedi Okorafor" },
+    { title: "Home", author: "Marilynne Robinson" },
+    { title: "Daisy Jones & The Six", author: "Taylor Jenkins Reid" },
+  ];
+  it("matches exact titles, using the author to pick between same-named books", () => {
+    expect(findBook(lib, "Home", "Nnedi Okorafor")?.author).toBe("Nnedi Okorafor");
+    expect(findBook(lib, "Home", "Marilynne Robinson")?.author).toBe("Marilynne Robinson");
+  });
+  it("matches across a subtitle and '&' vs 'and'", () => {
+    expect(findBook(lib, "Marple", "Various")).toBeNull(); // too short to guess from
+    expect(findBook(lib, "Marple: Twelve New Mysteries", "Various")?.title).toBe("Marple: Twelve New Mysteries");
+    expect(findBook(lib, "Daisy Jones and The Six", null)?.title).toBe("Daisy Jones & The Six");
+  });
+  it("numbers slots in sheet order per square", () => {
+    expect(slotPositions([{ square: "a" }, { square: "a" }, { square: "b" }, { square: "a" }])).toEqual([1, 2, 1, 3]);
+  });
+});

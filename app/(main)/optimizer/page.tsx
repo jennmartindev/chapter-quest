@@ -16,6 +16,8 @@ export default async function OptimizerPage() {
     author: r.book.author,
     g1: r.book.cover_g1,
     g2: r.book.cover_g2,
+    cover: r.book.cover_url,
+    where: r.book.availability,
     total: r.total,
     chTouched: r.chTouched,
     rank: r.rank,
@@ -30,9 +32,10 @@ export default async function OptimizerPage() {
   }));
 
   const tbrCount = load.books.filter(
-    (b) => b.read_status === "to-read" || b.read_status === "currently-reading"
+    (b) => b.read_status === "to-read" || b.read_status === "currently-reading" || b.read_status === "paused"
   ).length;
   const dips = ranked.filter((r) => r.chTouched > 1).length;
 
-  return <OptimizerView items={items} tbrCount={tbrCount} dips={dips} />;
+  const filters = load.challenges.map((c) => ({ key: cls(c.tag), label: c.tag }));
+  return <OptimizerView items={items} tbrCount={tbrCount} dips={dips} filters={filters} />;
 }

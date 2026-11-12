@@ -9,6 +9,8 @@ export interface OptItem {
   author: string | null;
   g1: string;
   g2: string;
+  cover: string | null;
+  where: string | null;
   total: number;
   chTouched: number;
   rank: "best" | "high" | "med";
@@ -17,18 +19,23 @@ export interface OptItem {
 
 const RANK_LABEL: Record<string, string> = { best: "Best value", high: "High", med: "Low" };
 
-export default function OptimizerView({ items, tbrCount, dips }: { items: OptItem[]; tbrCount: number; dips: number }) {
-  const [filt, setFilt] = useState<"all" | "multi" | "hrcyed" | "rfantasy">("all");
+// Borrowable or owned today: a Libby copy with no wait, hoopla (no holds), a print copy, or yours.
+export const freeNow = (where: string | null) =>
+  !!where && /\bnow\b|hoopla|ccpl print|owned|\bku\b/i.test(where);
+
+export default function OptimizerView({ items, tbrCount, dips, filters }: { items: OptItem[]; tbrCount: number; dips: number; filters: { key: string; label: string }[] }) {
+  const [filt, setFilt] = useState<string>("all");
 
   const shown = items.filter((it) => {
     if (filt === "all") return true;
     if (filt === "multi") return it.chTouched > 1;
+    if (filt === "free") return freeNow(it.where);
     return it.matches.some((m) => m.cls === filt && !m.done);
   });
+  const chips = [{ key: "all", label: "All" }, { key: "free", label: "Free right now" }, { key: "multi", label: "Multi-challenge" }, ...filters];
 
   return (
     <>
-      <span className="eyebrow">The killer feature</span>
       <div className="tbr-hero">
         <span className="eyebrow">Cross-Challenge TBR Optimizer</span>
         <h2>What should I read next to finish the most squares?</h2>
@@ -41,9 +48,9 @@ export default function OptimizerView({ items, tbrCount, dips }: { items: OptIte
       </div>
 
       <div className="filters">
-        {(["all", "multi", "hrcyed", "rfantasy"] as const).map((f) => (
-          <button key={f} className={`fchip${filt === f ? " on" : ""}`} onClick={() => setFilt(f)}>
-            {f === "all" ? "All" : f === "multi" ? "Multi-challenge" : f === "hrcyed" ? "HRCYED" : "r/Fantasy"}
+        {chips.map((f) => (
+          <button key={f.key} className={`fchip${filt === f.key ? " on" : ""}`} onClick={() => setFilt(f.key)}>
+            {f.label}
           </button>
         ))}
       </div>
@@ -56,11 +63,11 @@ export default function OptimizerView({ items, tbrCount, dips }: { items: OptIte
       ) : (
         shown.map((it) => (
           <div className="tbr-card" key={it.id}>
-            <div className="cover" style={{ background: `linear-gradient(160deg, ${it.g1}, ${it.g2})` }} />
+            <div className="cover" style={it.cover ? { backgroundImage: `url(${it.cover})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: `linear-gradient(160deg, ${it.g1}, ${it.g2})` }} />
             <div className="body">
               <span className={`rank ${it.rank}`}>{RANK_LABEL[it.rank]}</span>
               <h3>{it.title}</h3>
-              <div className="author">{it.author ?? ""}</div>
+              <div className="author">{it.author ?? ""}{it.where ? <span className="where"> · {it.where}</span> : null}</div>
               <ul className="mlist">
                 {it.matches.map((m, i) => (
                   <li key={i} className={m.done ? "dn" : ""}>

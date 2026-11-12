@@ -9,9 +9,13 @@ import type { ChallengeWithSquares } from "@/lib/types";
 
 const RULE_TEXT: Record<string, string> = {
   hrcyed:
-    "<b>Basic No Nonsense:</b> every book can count toward <b>two</b> squares. Rereads 5+ years old. No DNFs.",
+    "<b>Standard (No Nonsense):</b> every book can count toward <b>two</b> squares, never twice in one. Rereads only after 5+ years. No DNFs. Multi-book squares fill <b>one slot per book</b>.",
   rfantasy:
     "<b>One square = one book.</b> No book reused on the card · 25 books, 24 authors · only <b>one</b> reread. Each square has an optional Hard Mode.",
+  buzzword26:
+    "<b>One title prompt a month.</b> Catching up on earlier months counts.",
+  mystery26:
+    "<b>One book per square.</b> The center square is free.",
 };
 
 type SquareBooks = Record<string, { title: string; cover: string | null; g1?: string; g2?: string }>;

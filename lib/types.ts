@@ -1,6 +1,6 @@
 // Shared domain types, mirroring the Supabase schema.
 
-export type ReadStatus = "to-read" | "currently-reading" | "read" | "did-not-finish";
+export type ReadStatus = "to-read" | "currently-reading" | "paused" | "read" | "did-not-finish";
 
 export interface Profile {
   id: string;
@@ -48,6 +48,7 @@ export interface Book {
   cover_g1: string;
   cover_g2: string;
   cover_url: string | null;
+  availability: string | null;
   source: string;
   tags: string | null;
 }
@@ -59,6 +60,15 @@ export interface BookSquare {
   square_id: string;
   why: string | null;
   status: "planned" | "logged";
+  slot_id: string | null;
+}
+
+// One book's place in a multi-book square (Rainbow's "Red", Titular's "3 words").
+export interface SquareSlot {
+  id: string;
+  square_id: string;
+  position: number;
+  label: string;
 }
 
 export interface MemberProgress {

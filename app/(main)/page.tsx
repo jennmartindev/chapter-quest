@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { loadEverything, buildOptimizerInputs, getProfile } from "@/lib/data";
 import { rankBooks } from "@/lib/optimizer";
-import { challengeStatus, fmtDate, overlapWindow } from "@/lib/format";
+import { challengeStatus, fmtDate, overlapWindow, readerToday } from "@/lib/format";
 import { IconFlame, IconGrid, IconLayers } from "@/components/icons";
 import { DuneWave, BookStack, PawStub } from "@/components/illustrations";
 
@@ -22,24 +22,33 @@ export default async function HomePage() {
     .sort((a, b) => a.left - b.left || b.s.logged - a.s.logged)
     .slice(0, 4);
 
-  const overlap =
-    load.challenges.length >= 2 ? overlapWindow(load.challenges[0], load.challenges[1]) : null;
+  // When every challenge is open at once: books read then count everywhere.
+  const overlap = load.challenges.length >= 2
+    ? load.challenges.slice(1).reduce<{ start: string; end: string } | null>(
+        (w, c) => (w ? overlapWindow({ start_date: w.start, end_date: w.end }, c) : null),
+        { start: load.challenges[0].start_date, end: load.challenges[0].end_date })
+    : null;
 
   const firstName = (profile?.display_name ?? "reader").split(" ")[0];
+  // The server runs on UTC, so read the hour where the reader is.
+  const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const year = readerToday().slice(0, 4);
+  const readThisYear = load.books.filter((b) => b.read_status === "read" && b.date_read?.startsWith(year)).length;
 
   return (
     <div className="home">
       <header className="home-mast">
         <div className="mast-l">
           <span className="eyebrow">Welcome back</span>
-          <h1 className="greet">Good evening, <em>{firstName}</em>.</h1>
+          <h1 className="greet">{greeting}, <em>{firstName}</em>.</h1>
         </div>
         <div className="dogblob"><PawStub size={34} /></div>
       </header>
       <DuneWave className="dune" />
 
       <div className="stat-row">
-        <div className="stat stat--streak"><div className="e"><IconFlame size={22} /></div><div className="n">{profile?.streak ?? 0}</div><div className="l">Day streak</div></div>
+        <div className="stat stat--streak"><div className="e"><IconFlame size={22} /></div><div className="n">{readThisYear}</div><div className="l">Read in {year}</div></div>
         <div className="stat stat--squares"><div className="e"><IconGrid size={22} /></div><div className="n">{squaresDone}<small>/{squaresTotal}</small></div><div className="l">Squares done</div></div>
         <div className="stat stat--multi"><div className="e"><IconLayers size={22} /></div><div className="n">{dips}</div><div className="l">Multi-challenge picks</div></div>
       </div>
@@ -50,7 +59,7 @@ export default async function HomePage() {
           <h2>One book, {top.total} square{top.total > 1 ? "s" : ""}{top.chTouched > 1 ? ` — across ${top.chTouched} challenges` : ""}</h2>
           <p>Top pick from your TBR right now.</p>
           <div className="pick">
-            <div className="cover" style={{ background: `linear-gradient(160deg, ${top.book.cover_g1}, ${top.book.cover_g2})` }} />
+            <div className="cover" style={top.book.cover_url ? { backgroundImage: `url(${top.book.cover_url})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: `linear-gradient(160deg, ${top.book.cover_g1}, ${top.book.cover_g2})` }} />
             <div className="meta">
               <b>{top.book.title}</b>
               <div className="tags">
@@ -80,7 +89,7 @@ export default async function HomePage() {
 
       {overlap && (
         <div className="overlap">
-          <b>Your challenges overlap {fmtDate(overlap.start)} – {fmtDate(overlap.end)}.</b> A book read inside the overlap can count for both — that&apos;s where the optimizer earns its keep.
+          <b>Your challenges overlap {fmtDate(overlap.start)} – {fmtDate(overlap.end)}.</b> A book you finish inside that window can count on every board.
         </div>
       )}
 

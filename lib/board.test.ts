@@ -107,3 +107,24 @@ describe("readInWindow", () => {
     expect(readInWindow(null, "2026-07-01", "2027-06-30")).toBe(false);
   });
 });
+
+import { squareProgress } from "./board";
+
+describe("squareProgress", () => {
+  const read = (slotId: string | null) => ({ status: "read", slotId });
+  it("counts each slot once, so two red titles fill one Red slot", () => {
+    expect(squareProgress(11, [read("red"), read("red"), read("black")], ["red", "orange", "black"]).logged).toBe(2);
+  });
+  it("doesn't count a read book that isn't filed under a slot", () => {
+    expect(squareProgress(3, [read(null), read("a")], ["a", "b", "c"])).toEqual({ logged: 1, state: "progress" });
+  });
+  it("counts read books on a square without slots", () => {
+    expect(squareProgress(1, [read(null)], [])).toEqual({ logged: 1, state: "done" });
+  });
+  it("treats a free square as done", () => {
+    expect(squareProgress(0, [], []).state).toBe("done");
+  });
+  it("shows picks with nothing read as options", () => {
+    expect(squareProgress(5, [{ status: "to-read", slotId: "a" }], ["a"]).state).toBe("options");
+  });
+});

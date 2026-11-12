@@ -4,6 +4,7 @@ import { challengeStatus, fmtDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import ShareButton from "@/components/ShareButton";
 import ChallengeActions from "@/components/ChallengeActions";
+import StartChallenge from "@/components/StartChallenge";
 
 const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
@@ -18,6 +19,10 @@ export default async function ChallengesPage() {
     .eq("archived", true)
     .order("template_key");
   const archived = archivedRows ?? [];
+  // Published cards you don't have yet (an archived one comes back with Restore instead).
+  const { data: templateRows } = await supabase.from("challenge_templates").select("key, name, start_date, end_date").order("start_date");
+  const have = new Set([...load.challenges.map((c) => c.template_key), ...archived.map((a) => a.template_key)]);
+  const startable = (templateRows ?? []).filter((t) => !have.has(t.key));
 
   return (
     <>
@@ -77,10 +82,18 @@ export default async function ChallengesPage() {
         </>
       )}
 
+      {startable.length > 0 && (
+        <>
+          <div className="section-title" style={{ marginTop: 28 }}><h2 style={{ fontSize: 16 }}>Start a challenge</h2></div>
+          {startable.map((t) => (
+            <StartChallenge key={t.key} template={t.key} name={t.name} dates={`${fmtDate(t.start_date)} → ${fmtDate(t.end_date)}`} />
+          ))}
+        </>
+      )}
+
       <Link href="/import" className="continue" style={{ display: "block", textAlign: "center", marginTop: 24, background: "var(--card-2)", color: "var(--accent-deep)", boxShadow: "none", border: "1px dashed var(--line)" }}>
         ＋ Import books for these challenges
       </Link>
-      <p className="board-tip">Custom card builder &amp; more challenge templates are coming next.</p>
     </>
   );
 }

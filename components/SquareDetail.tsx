@@ -8,12 +8,12 @@ import { OnlineResults, saveFoundBook, useBookSearch } from "./FindBook";
 import { readerColor } from "@/lib/board";
 import { cardRuleWarning, type CardPick, type FoundBook } from "@/lib/books";
 
-interface HereBook { id: string; title: string; author: string | null; mine: boolean; readStatus: string | null; countsHere: boolean; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
+interface HereBook { id: string; title: string; author: string | null; mine: boolean; readStatus: string | null; countsHere: boolean; slotId: string | null; why: string | null; availability: string | null; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
 interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; cover: string | null; status: string; }
 interface MemberProg { userId: string; name: string; status: "reading" | "done" | null; }
 
-const STATUS_LABEL: Record<string, string> = { read: "Read", "currently-reading": "Reading", "to-read": "Want to read", "did-not-finish": "DNF" };
-const STATUS_ORDER: Record<string, number> = { "to-read": 0, "currently-reading": 1, read: 2, "did-not-finish": 3 };
+const STATUS_LABEL: Record<string, string> = { read: "Read", "currently-reading": "Reading", paused: "Paused", "to-read": "Want to read", "did-not-finish": "DNF" };
+const STATUS_ORDER: Record<string, number> = { "to-read": 0, "currently-reading": 1, paused: 2, read: 3, "did-not-finish": 4 };
 const initial = (n: string) => (n || "?").charAt(0).toUpperCase();
 
 function coverStyle(cover: string | null, g1: string, g2: string): React.CSSProperties {
@@ -26,13 +26,14 @@ export default function SquareDetail(props: {
   squareId: string; squareName: string; rule: string; need: number;
   challengeName: string; challengeTag: string; templateKey: string; maxPerBook: number;
   dipCount: number; shared: boolean; myStatus: "reading" | "done" | null; memberProgress: MemberProg[];
-  currentUserId: string; here: HereBook[]; books: LibBook[]; cardPicks: CardPick[];
+  currentUserId: string; here: HereBook[]; books: LibBook[]; cardPicks: CardPick[]; slots: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const { toast } = useShell();
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [replacing, setReplacing] = useState<HereBook | null>(null);
+  const [forSlot, setForSlot] = useState<{ id: string; label: string } | null>(null);
   const searchTop = useRef<HTMLDivElement>(null);
 
   const results = useMemo(() => {
@@ -47,9 +48,9 @@ export default function SquareDetail(props: {
 
   async function assign(book_id: string, title: string) {
     setBusy(book_id);
-    const res = await fetch("/api/book-squares", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id, square_id: props.squareId }) });
+    const res = await fetch("/api/book-squares", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id, square_id: props.squareId, ...(forSlot ? { slot_id: forSlot.id } : {}) }) });
     setBusy(null);
-    if (res.ok) { toast(`Added “${title}”`); router.refresh(); } else toast("Couldn't add that");
+    if (res.ok) { toast(forSlot ? `Added “${title}” for ${forSlot.label}` : `Added “${title}”`); setForSlot(null); setQ(""); router.refresh(); } else toast("Couldn't add that");
   }
 
   // A new book may not be the one you marked read, so ask rather than assume.
@@ -93,6 +94,12 @@ export default function SquareDetail(props: {
     setBusy(null);
     if (res.ok) { toast("Removed"); router.refresh(); }
   }
+  async function fileUnder(book_id: string, slot_id: string | null) {
+    setBusy(book_id);
+    const res = await fetch("/api/book-squares", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id, square_id: props.squareId, slot_id }) });
+    setBusy(null);
+    if (res.ok) { toast(slot_id ? "Filed" : "Unfiled"); router.refresh(); } else toast("Couldn't file that");
+  }
   async function setBookStatus(book_id: string, read_status: string) {
     setBusy(book_id);
     const res = await fetch("/api/books", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id, read_status }) });
@@ -110,7 +117,13 @@ export default function SquareDetail(props: {
 
   const search = (
     <>
-      <div className="section-title" ref={searchTop}><h2 style={{ fontSize: 16 }}>{replacing ? "Replace with" : props.here.length ? "Add another book" : "Pick a book"}</h2></div>
+      <div className="section-title" ref={searchTop}><h2 style={{ fontSize: 16 }}>{replacing ? "Replace with" : forSlot ? `Pick a book for ${forSlot.label}` : props.here.length ? "Add another book" : "Pick a book"}</h2></div>
+      {forSlot && !replacing && (
+        <div className="replacing" role="status">
+          <span>Adding to <b>{forSlot.label}</b></span>
+          <button type="button" className="chbtn" onClick={() => setForSlot(null)}>Cancel</button>
+        </div>
+      )}
       {replacing && (
         <div className="replacing" role="status">
           <span>Replacing <b>{replacing.title}</b></span>
@@ -198,8 +211,40 @@ export default function SquareDetail(props: {
     );
   }
 
+  // One of your picks: cover, why it's here, where to get it, its status, and (on slotted squares) which slot it fills.
+  const pickRow = (h: HereBook) => (
+    <div className="match" key={h.id}>
+      <div className="cover" style={coverStyle(h.cover, h.g1, h.g2)} />
+      <div className="mt">
+        <b>{h.title}</b>
+        <span>
+          {[h.author, h.why, h.alsoFills.length ? "also fills: " + h.alsoFills.map((a) => a.name).join(", ") : null].filter(Boolean).join(" · ") || "candidate for this square"}
+        </span>
+        {h.availability && <span className="where">{h.availability}</span>}
+        {h.readStatus === "read" && !h.countsHere && <span className="where">Read before this challenge, so it doesn&apos;t count here</span>}
+        {pickActions(h)}
+      </div>
+      {props.slots.length > 0 && (
+        <select className="bsel" aria-label={`Slot for ${h.title}`} value={h.slotId ?? ""} disabled={busy === h.id} onChange={(e) => fileUnder(h.id, e.target.value || null)}>
+          <option value="">No slot</option>
+          {props.slots.map((sl) => <option key={sl.id} value={sl.id}>{sl.label}</option>)}
+        </select>
+      )}
+      <select className="bsel" aria-label={`Status of ${h.title}`} value={h.readStatus ?? "to-read"} disabled={busy === h.id} onChange={(e) => setBookStatus(h.id, e.target.value)}>
+        <option value="to-read">Want to read</option>
+        <option value="currently-reading">Reading</option>
+        <option value="paused">Paused</option>
+        <option value="read">Read</option>
+        <option value="did-not-finish">DNF</option>
+      </select>
+      <button className="add ghost" aria-label={`Remove ${h.title}`} disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>
+    </div>
+  );
+
   // ---------------- SOLO MODE ----------------
-  const readN = props.here.filter((h) => h.countsHere).length;
+  const hasSlots = props.slots.length > 0;
+  const slotDone = (id: string) => props.here.some((h) => h.slotId === id && h.countsHere);
+  const readN = hasSlots ? props.slots.filter((sl) => slotDone(sl.id)).length : props.here.filter((h) => h.countsHere).length;
   const readingN = props.here.filter((h) => h.readStatus === "currently-reading").length;
   const stateLabel =
     readN >= props.need ? "Complete"
@@ -226,22 +271,41 @@ export default function SquareDetail(props: {
         </div>
       </div>
 
-      {props.here.length > 0 && (
+      {hasSlots && (
+        <>
+          <div className="section-title"><h2 style={{ fontSize: 16 }}>Slots</h2><span className="muted" style={{ fontSize: 12 }}>{readN} of {props.slots.length} filled</span></div>
+          {props.slots.map((sl) => {
+            const inSlot = props.here.filter((h) => h.slotId === sl.id);
+            const done = slotDone(sl.id);
+            return (
+              <div className={`slot${done ? " is-done" : ""}`} key={sl.id}>
+                <div className="slot-head">
+                  <span className="slot-mark" aria-hidden>{done ? "✓" : ""}</span>
+                  <b>{sl.label}</b>
+                  {!done && (
+                    <button type="button" className="chbtn" onClick={() => { setForSlot(sl); setReplacing(null); searchTop.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+                      {inSlot.length ? "Add option" : "Pick a book"}
+                    </button>
+                  )}
+                </div>
+                {inSlot.map((h) => pickRow(h))}
+              </div>
+            );
+          })}
+          {props.here.some((h) => !h.slotId || !props.slots.some((sl) => sl.id === h.slotId)) && (
+            <>
+              <div className="section-title"><h2 style={{ fontSize: 16 }}>Not in a slot yet</h2></div>
+              <p className="muted" style={{ fontSize: 12, margin: "0 2px 8px" }}>These don&apos;t count until you file them under a slot.</p>
+              {props.here.filter((h) => !h.slotId || !props.slots.some((sl) => sl.id === h.slotId)).map((h) => pickRow(h))}
+            </>
+          )}
+        </>
+      )}
+
+      {!hasSlots && props.here.length > 0 && (
         <>
           <div className="section-title"><h2 style={{ fontSize: 16 }}>Your picks</h2></div>
-          {props.here.map((h) => (
-            <div className="match" key={h.id}>
-              <div className="cover" style={coverStyle(h.cover, h.g1, h.g2)} />
-              <div className="mt"><b>{h.title}</b><span>{h.alsoFills.length ? "also fills: " + h.alsoFills.map((a) => a.name).join(", ") : "candidate for this square"}</span>{pickActions(h)}</div>
-              <select className="bsel" value={h.readStatus ?? "to-read"} disabled={busy === h.id} onChange={(e) => setBookStatus(h.id, e.target.value)}>
-                <option value="to-read">Want to read</option>
-                <option value="currently-reading">Reading</option>
-                <option value="read">Read</option>
-                <option value="did-not-finish">DNF</option>
-              </select>
-              <button className="add ghost" aria-label={`Remove ${h.title}`} disabled={busy === h.id} onClick={() => remove(h.id)}>✕</button>
-            </div>
-          ))}
+          {props.here.map((h) => pickRow(h))}
         </>
       )}
       {search}

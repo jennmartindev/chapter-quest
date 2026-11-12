@@ -29,7 +29,7 @@ const STATUS_MAP: Record<string, ReadStatus> = {
   "did-not-finish": "did-not-finish",
   "did not finish": "did-not-finish",
   dnf: "did-not-finish",
-  paused: "currently-reading",
+  paused: "paused",
 };
 
 function pick(row: Record<string, string>, ...names: string[]): string {
@@ -43,11 +43,11 @@ function pick(row: Record<string, string>, ...names: string[]): string {
   return "";
 }
 
-function toIsoDate(raw: string): string | null {
+export function toIsoDate(raw: string): string | null {
   if (!raw) return null;
-  // StoryGraph uses YYYY/MM/DD or YYYY-MM-DD; sometimes a date range.
-  const first = raw.split(/[-–]/)[0].trim().replace(/\//g, "-");
-  const m = first.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  // StoryGraph uses YYYY/MM/DD or YYYY-MM-DD; sometimes a date range ("a - b" or "a–b").
+  // Take the first date in the string, whatever separates its parts.
+  const m = raw.trim().match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
   if (!m) return null;
   const [, y, mo, d] = m;
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
@@ -90,6 +90,21 @@ export function parseStoryGraphRow(row: Record<string, string>): ParsedBook | nu
     cover_g2: g2,
     source: "storygraph",
   };
+}
+
+// ---- Re-import: what a fresh export changes about a book already in the library ----
+// The export is the source of truth for status, finish date and rating, with one exception:
+// a book marked read in the app stays read, so an export downloaded earlier can't undo it.
+export function importChanges(
+  have: { read_status: string; date_read: string | null; star_rating: number | null },
+  next: Pick<ParsedBook, "read_status" | "date_read" | "star_rating">
+): Record<string, unknown> | null {
+  const patch: Record<string, unknown> = {};
+  const keepRead = have.read_status === "read" && next.read_status !== "read";
+  if (!keepRead && next.read_status !== have.read_status) patch.read_status = next.read_status;
+  if (next.date_read && next.date_read !== have.date_read) patch.date_read = next.date_read;
+  if (next.star_rating != null && Number(next.star_rating) !== Number(have.star_rating)) patch.star_rating = next.star_rating;
+  return Object.keys(patch).length ? patch : null;
 }
 
 // ---- ISBN helpers (for Open Library enrichment) ----

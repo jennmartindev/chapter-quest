@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/server";
-import { parseStoryGraphRow, suggestSquares, isRealIsbn } from "@/lib/storygraph";
+import { importChanges, parseStoryGraphRow, suggestSquares, isRealIsbn } from "@/lib/storygraph";
 
 export const maxDuration = 60;
 
@@ -33,18 +33,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No books found in that file." }, { status: 400 });
   }
 
-  // Dedupe against the existing library (case-insensitive title + author).
-  const { data: existing } = await supabase.from("books").select("title, author");
-  const seen = new Set((existing ?? []).map((b) => `${(b.title ?? "").toLowerCase()}|${(b.author ?? "").toLowerCase()}`));
+  // Match against the existing library (case-insensitive title + author). A book already here gets
+  // the export's newer status, date and rating, so finishing a book and re-importing fills its squares.
+  const { data: existing } = await supabase.from("books").select("id, title, author, read_status, date_read, star_rating");
+  type Existing = { id: string; title: string; author: string | null; read_status: string; date_read: string | null; star_rating: number | null };
+  const keyOf = (title: string, author: string | null) => `${title.toLowerCase()}|${(author ?? "").toLowerCase()}`;
+  const byKey = new Map(((existing ?? []) as Existing[]).map((b) => [keyOf(b.title, b.author), b]));
+  const seen = new Set<string>();
 
+  const updates: { id: string; patch: Record<string, unknown> }[] = [];
   const toInsert: Record<string, unknown>[] = [];
   for (const r of rows) {
-    const key = `${r.title.toLowerCase()}|${(r.author ?? "").toLowerCase()}`;
+    const key = keyOf(r.title, r.author);
     if (seen.has(key)) continue;
     seen.add(key);
+    const have = byKey.get(key);
+    if (have) {
+      const patch = importChanges(have, r);
+      if (patch) updates.push({ id: have.id, patch });
+      continue;
+    }
     // Books with a real ISBN queue for Open Library enrichment; others (audio
     // ASINs, blanks) are marked enriched so the backfill loop terminates.
     toInsert.push({ ...r, user_id: user.id, enriched: !isRealIsbn(r.isbn) });
+  }
+
+  let updated = 0;
+  for (let i = 0; i < updates.length; i += 20) {
+    const results = await Promise.all(
+      updates.slice(i, i + 20).map((u) => supabase.from("books").update(u.patch).eq("id", u.id))
+    );
+    updated += results.filter((res) => !res.error).length;
   }
 
   let inserted: { id: string; title: string }[] = [];
@@ -94,7 +113,8 @@ export async function POST(request: Request) {
     ok: true,
     parsed: rows.length,
     imported: inserted.length,
-    skipped: rows.length - inserted.length,
+    updated,
+    skipped: rows.length - inserted.length - updated,
     suggested,
   });
 }

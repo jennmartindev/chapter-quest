@@ -11,7 +11,7 @@
   --serif:var(--font-serif),"Fraunces","Iowan Old Style",Palatino,Georgia,serif;
   --sans:var(--font-sans),ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r-lg:22px; --r-md:16px;
-  --hrtag:#617E74; --rftag:#4B6B75;
+  --hrtag:#617E74; --rftag:#4B6B75; --bztag:#A9794A; --mytag:#8A2F2F;
  
 }
 [data-theme="sage"]{ --ground:#F2E9D7; --ground-2:#EADFC8; --card:#FCF7EC; --card-2:#EFE6D0; --text:#2E4047; --text-soft:#71837C; --accent:#617E74; --accent-deep:#4C645B; --gold:#C89347; --gold-soft:#ECCCB2; --line:#DFD2B8; --done:#617E74; --done-ink:#FCF7EC; --shadow:rgba(46,64,71,.18); --frame:#2E4047; }
@@ -95,6 +95,8 @@ input{ font-family:inherit; }
 .chtag{ font-size:9px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; padding:3px 7px; border-radius:12px; color:#fff; display:inline-block; }
 .chtag.hrcyed{ background:var(--hrtag); }
 .chtag.rfantasy{ background:var(--rftag); }
+.chtag.buzzword, .chtag.buzzword26{ background:var(--bztag); }
+.chtag.mystery, .chtag.mystery26{ background:var(--mytag); }
 .status{ font-size:9px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; padding:3px 8px; border-radius:12px; }
 .status.live{ background:var(--gold); color:#2c220a; }
 .status.soon{ background:var(--card-2); color:var(--text-soft); border:1px solid var(--line); }
@@ -238,6 +240,19 @@ input{ font-family:inherit; }
 .match .add:disabled{ opacity:.5; }
 .match .add.ghost{ background:transparent; color:var(--accent-deep); border:1px solid var(--line); }
 .match .add.ghost:hover{ background:var(--card-2); }
+.tbr-card .where{ color:var(--accent-deep); font-weight:600; }
+.match .mt span.where{ color:var(--accent-deep); font-weight:600; }
+.match .bsel + .bsel{ margin-left:-4px; }
+
+/* Slots: a multi-book square as a checklist (Rainbow: Red, Orange, …) */
+.slot{ border:1px solid var(--line); border-radius:14px; padding:10px 10px 2px; margin-bottom:10px; background:var(--card-2); }
+.slot.is-done{ border-color:var(--done); }
+.slot-head{ display:flex; align-items:center; gap:9px; margin:0 2px 8px; }
+.slot-head b{ flex:1; font-size:13px; }
+.slot-mark{ width:20px; height:20px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; font-size:12px; font-weight:800; color:var(--done-ink); flex:none; }
+.slot.is-done .slot-mark{ background:var(--done); border-color:var(--done); }
+.slot .match{ margin-bottom:8px; }
+@media (max-width:600px){ .match{ flex-wrap:wrap; } .match .mt{ flex-basis:calc(100% - 50px); } }
 .searchbar{ margin:0 0 12px; }
 .searchbar input{ width:100%; padding:12px 14px; border-radius:13px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:14px; }
 .searchbar input:focus{ outline:2px solid var(--accent); outline-offset:1px; }

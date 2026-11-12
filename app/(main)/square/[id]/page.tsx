@@ -39,6 +39,9 @@ export default async function SquarePage({ params }: { params: { id: string } })
         readStatus: own?.read_status ?? null,
         // Read during this challenge, so it counts toward the square (a book read earlier doesn't).
         countsHere: own?.read_status === "read" && readInWindow(own.date_read, challenge!.start_date, challenge!.end_date),
+        slotId: r.slot_id ?? null,
+        why: r.why,
+        availability: own?.availability ?? null,
         g1: own?.cover_g1 ?? "#617E74",
         g2: own?.cover_g2 ?? "#3f5238",
         cover: own?.cover_url ?? r.pick_cover ?? null,
@@ -79,6 +82,7 @@ export default async function SquarePage({ params }: { params: { id: string } })
         memberProgress={square.memberProgress ?? []}
         currentUserId={load.userId}
         here={here}
+        slots={load.slots.filter((sl) => sl.square_id === square!.id).map((sl) => ({ id: sl.id, label: sl.label || `Book ${sl.position}` }))}
         cardPicks={cardPicks}
         books={books.map((b) => ({ id: b.id, title: b.title, author: b.author, g1: b.cover_g1, g2: b.cover_g2, cover: b.cover_url, status: b.read_status }))}
       />
