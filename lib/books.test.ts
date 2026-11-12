@@ -180,3 +180,17 @@ describe("plan import matching", () => {
     expect(slotPositions([{ square: "a" }, { square: "a" }, { square: "b" }, { square: "a" }])).toEqual([1, 2, 1, 3]);
   });
 });
+
+import { bestRowPerBook } from "./storygraph";
+
+describe("editions listed twice", () => {
+  it("keeps the edition you read over the one you want to read, whichever comes first", () => {
+    const rows = [
+      parseStoryGraphRow({ Title: "The Mysterious Affair of Judith Potts", Authors: "Robert Thorogood", "Read Status": "to-read", Format: "hardcover" })!,
+      parseStoryGraphRow({ Title: "The Mysterious Affair of Judith Potts", Authors: "Robert Thorogood", "Read Status": "read", "Last Date Read": "2026/08/05", Format: "audio" })!,
+    ];
+    const kept = bestRowPerBook(rows);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toMatchObject({ read_status: "read", date_read: "2026-08-05" });
+  });
+});

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/server";
-import { importChanges, parseStoryGraphRow, suggestSquares, isRealIsbn } from "@/lib/storygraph";
+import { bestRowPerBook, importChanges, parseStoryGraphRow, suggestSquares, isRealIsbn } from "@/lib/storygraph";
 
 export const maxDuration = 60;
 
@@ -26,9 +26,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Couldn't parse that CSV. Is it a StoryGraph export?" }, { status: 400 });
   }
 
-  const rows = parsed.data.map(parseStoryGraphRow).filter(Boolean) as NonNullable<
+  const rows = bestRowPerBook(parsed.data.map(parseStoryGraphRow).filter(Boolean) as NonNullable<
     ReturnType<typeof parseStoryGraphRow>
-  >[];
+  >[]);
   if (rows.length === 0) {
     return NextResponse.json({ error: "No books found in that file." }, { status: 400 });
   }

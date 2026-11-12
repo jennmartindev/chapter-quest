@@ -92,6 +92,20 @@ export function parseStoryGraphRow(row: Record<string, string>): ParsedBook | nu
   };
 }
 
+// ---- One row per book ----
+// StoryGraph lists each edition separately, so a book can appear twice: the hardcover you
+// want to read and the audiobook you finished. Keep the row furthest along.
+const PROGRESS: Record<string, number> = { read: 4, "currently-reading": 3, paused: 2, "did-not-finish": 1, "to-read": 0 };
+export function bestRowPerBook(rows: ParsedBook[]): ParsedBook[] {
+  const best = new Map<string, ParsedBook>();
+  for (const r of rows) {
+    const key = `${r.title.toLowerCase()}|${(r.author ?? "").toLowerCase()}`;
+    const have = best.get(key);
+    if (!have || (PROGRESS[r.read_status] ?? 0) > (PROGRESS[have.read_status] ?? 0)) best.set(key, r);
+  }
+  return [...best.values()];
+}
+
 // ---- Re-import: what a fresh export changes about a book already in the library ----
 // The export is the source of truth for status, finish date and rating, with one exception:
 // a book marked read in the app stays read, so an export downloaded earlier can't undo it.
