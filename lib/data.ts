@@ -9,6 +9,7 @@ import type {
   SquareProgress,
 } from "./types";
 import type { OptInput, Candidate } from "./optimizer";
+import { readInWindow } from "./format";
 
 const norm = (t: string | null) => (t ?? "").toLowerCase().trim();
 
@@ -21,27 +22,37 @@ export async function syncSharedProgress(): Promise<void> {
   const uid = user?.id;
   if (!uid) return;
 
-  const { data: chs } = await supabase.from("challenges").select("id").eq("shared", true);
+  const { data: chs } = await supabase.from("challenges").select("id, start_date, end_date").eq("shared", true);
   const sharedIds = (chs ?? []).map((c) => c.id);
+  const windowById = new Map((chs ?? []).map((c) => [c.id as string, { start: c.start_date as string, end: c.end_date as string }]));
   if (sharedIds.length === 0) return;
 
   const [{ data: picks }, { data: myBooks }, { data: myProg }] = await Promise.all([
     supabase.from("book_squares").select("square_id, challenge_id, pick_title").in("challenge_id", sharedIds),
-    supabase.from("books").select("title, read_status"),
+    supabase.from("books").select("title, read_status, date_read"),
     supabase.from("square_progress").select("square_id, status, auto").eq("user_id", uid).in("challenge_id", sharedIds),
   ]);
 
-  const myStatusByTitle = new Map<string, "reading" | "done">();
-  for (const b of (myBooks ?? []) as { title: string; read_status: string }[]) {
-    const s = b.read_status === "read" ? "done" : b.read_status === "currently-reading" ? "reading" : null;
-    if (!s) continue;
+  // Every copy of a title in your library, so each board can check the read date against its own dates.
+  const myBooksByTitle = new Map<string, { read_status: string; date_read: string | null }[]>();
+  for (const b of (myBooks ?? []) as { title: string; read_status: string; date_read: string | null }[]) {
     const k = norm(b.title);
-    if (s === "done" || !myStatusByTitle.has(k)) myStatusByTitle.set(k, s);
+    if (!myBooksByTitle.has(k)) myBooksByTitle.set(k, []);
+    myBooksByTitle.get(k)!.push(b);
   }
+  const myStatusFor = (title: string | null, challengeId: string): "reading" | "done" | null => {
+    const w = windowById.get(challengeId);
+    let s: "reading" | "done" | null = null;
+    for (const b of myBooksByTitle.get(norm(title)) ?? []) {
+      if (b.read_status === "read" && w && readInWindow(b.date_read, w.start, w.end)) return "done";
+      if (b.read_status === "currently-reading") s = "reading";
+    }
+    return s;
+  };
 
   const desired = new Map<string, { status: "reading" | "done"; challenge_id: string }>();
   for (const p of (picks ?? []) as { square_id: string; challenge_id: string; pick_title: string | null }[]) {
-    const s = myStatusByTitle.get(norm(p.pick_title));
+    const s = myStatusFor(p.pick_title, p.challenge_id);
     if (!s) continue;
     const cur = desired.get(p.square_id);
     if (s === "done" || !cur) desired.set(p.square_id, { status: s, challenge_id: p.challenge_id });
@@ -113,12 +124,23 @@ export async function loadEverything(): Promise<LoadResult> {
   const bookList = (books ?? []) as Book[];
 
   // ---- lookups ----
-  const statusByBook = new Map(bookList.map((b) => [b.id, b.read_status]));
+  const bookById = new Map(bookList.map((b) => [b.id, b]));
+  const windowByChallenge = new Map(
+    ((challenges ?? []) as Challenge[]).map((c) => [c.id, { start: c.start_date, end: c.end_date }])
+  );
+  // A read book only counts if it was finished during that challenge; read before it, it's just a pick.
+  const statusFor = (bookId: string, challengeId: string): string | undefined => {
+    const b = bookById.get(bookId);
+    if (!b) return undefined;
+    if (b.read_status !== "read") return b.read_status;
+    const w = windowByChallenge.get(challengeId);
+    return w && readInWindow(b.date_read, w.start, w.end) ? "read" : "to-read";
+  };
   const ownStatusesBySquare = new Map<string, string[]>(); // solo: assigned books' read status
   const picksBySquare = new Map<string, number>(); // any challenge: # of picks
   for (const r of bs) {
     picksBySquare.set(r.square_id, (picksBySquare.get(r.square_id) ?? 0) + 1);
-    const rs = statusByBook.get(r.book_id);
+    const rs = statusFor(r.book_id, r.challenge_id);
     if (rs) {
       if (!ownStatusesBySquare.has(r.square_id)) ownStatusesBySquare.set(r.square_id, []);
       ownStatusesBySquare.get(r.square_id)!.push(rs);

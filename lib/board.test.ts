@@ -92,3 +92,18 @@ describe("labels and colors", () => {
     expect(readerColor(-1)).toBe("var(--reader-1)");
   });
 });
+
+import { readInWindow } from "./format";
+
+describe("readInWindow", () => {
+  it("counts a book finished inside the challenge dates, ends included", () => {
+    expect(readInWindow("2026-07-01", "2026-07-01", "2027-06-30")).toBe(true);
+    expect(readInWindow("2027-06-30", "2026-07-01", "2027-06-30")).toBe(true);
+    expect(readInWindow("2026-11-09", "2026-07-01", "2027-06-30")).toBe(true);
+  });
+  it("leaves out books finished before or after, and books with no date", () => {
+    expect(readInWindow("2026-06-30", "2026-07-01", "2027-06-30")).toBe(false);
+    expect(readInWindow("2027-07-01", "2026-07-01", "2027-06-30")).toBe(false);
+    expect(readInWindow(null, "2026-07-01", "2027-06-30")).toBe(false);
+  });
+});

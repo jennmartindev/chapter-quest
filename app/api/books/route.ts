@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isCoverUrl, sameTitle } from "@/lib/books";
+import { readerToday } from "@/lib/format";
 
 const STATUSES = ["to-read", "currently-reading", "read", "did-not-finish"];
 
@@ -20,6 +21,12 @@ export async function PATCH(request: Request) {
   if (read_status !== undefined) {
     if (!STATUSES.includes(read_status)) return NextResponse.json({ error: "invalid read_status" }, { status: 400 });
     patch.read_status = read_status;
+    // Squares only count books finished during the challenge, so a book marked read here needs a date.
+    // Keep a date that's already there (from StoryGraph, say).
+    if (read_status === "read") {
+      const { data: current } = await supabase.from("books").select("date_read").eq("id", book_id).maybeSingle();
+      if (!current?.date_read) patch.date_read = readerToday();
+    }
   }
   if (typeof cover_url === "string") {
     const url = cover_url.trim();
