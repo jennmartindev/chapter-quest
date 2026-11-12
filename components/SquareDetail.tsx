@@ -8,7 +8,7 @@ import { OnlineResults, saveFoundBook, useBookSearch } from "./FindBook";
 import { readerColor } from "@/lib/board";
 import { cardRuleWarning, type CardPick, type FoundBook } from "@/lib/books";
 
-interface HereBook { id: string; title: string; author: string | null; mine: boolean; readStatus: string | null; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
+interface HereBook { id: string; title: string; author: string | null; mine: boolean; readStatus: string | null; countsHere: boolean; g1: string; g2: string; cover: string | null; alsoFills: { name: string; tag: string }[]; }
 interface LibBook { id: string; title: string; author: string | null; g1: string; g2: string; cover: string | null; status: string; }
 interface MemberProg { userId: string; name: string; status: "reading" | "done" | null; }
 
@@ -199,7 +199,7 @@ export default function SquareDetail(props: {
   }
 
   // ---------------- SOLO MODE ----------------
-  const readN = props.here.filter((h) => h.readStatus === "read").length;
+  const readN = props.here.filter((h) => h.countsHere).length;
   const readingN = props.here.filter((h) => h.readStatus === "currently-reading").length;
   const stateLabel =
     readN >= props.need ? "Complete"

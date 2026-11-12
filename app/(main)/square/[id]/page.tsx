@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadEverything, syncSharedProgress } from "@/lib/data";
 import SquareDetail from "@/components/SquareDetail";
+import { readInWindow } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,8 @@ export default async function SquarePage({ params }: { params: { id: string } })
         author: own?.author ?? null,
         mine: r.user_id === load.userId,
         readStatus: own?.read_status ?? null,
+        // Read during this challenge, so it counts toward the square (a book read earlier doesn't).
+        countsHere: own?.read_status === "read" && readInWindow(own.date_read, challenge!.start_date, challenge!.end_date),
         g1: own?.cover_g1 ?? "#617E74",
         g2: own?.cover_g2 ?? "#3f5238",
         cover: own?.cover_url ?? r.pick_cover ?? null,
