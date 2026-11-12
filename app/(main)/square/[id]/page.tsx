@@ -60,7 +60,7 @@ export default async function SquarePage({ params }: { params: { id: string } })
 
   return (
     <>
-      <Link href={`/boards?c=${challenge.template_key ?? ""}`} className="back">← Back to board</Link>
+      <Link href={`/boards?id=${challenge.id}`} className="back">← Back to board</Link>
       <SquareDetail
         squareId={square.id}
         squareName={square.name}

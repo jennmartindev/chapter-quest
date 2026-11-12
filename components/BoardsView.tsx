@@ -82,6 +82,11 @@ export default function BoardsView({
   const router = useRouter();
   const { toast } = useShell();
   const [current, setCurrent] = useState(initialId ?? challenges[0]?.id);
+  // A link to another board while this page is already showing reuses this component,
+  // so follow the URL instead of keeping the board picked before.
+  useEffect(() => {
+    if (initialId) setCurrent(initialId);
+  }, [initialId]);
   const [viewKey, setViewKey] = useState<string>(currentUserId);
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
@@ -139,8 +144,8 @@ export default function BoardsView({
 
   function pick(c: ChallengeWithSquares) {
     setCurrent(c.id);
-    if (typeof window !== "undefined" && c.template_key) {
-      window.history.replaceState(null, "", `/boards?c=${c.template_key}`);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/boards?id=${c.id}`);
     }
   }
   function chooseView(key: string) {

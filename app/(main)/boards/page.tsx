@@ -3,7 +3,7 @@ import BoardsView from "@/components/BoardsView";
 
 export const dynamic = "force-dynamic";
 
-export default async function BoardsPage({ searchParams }: { searchParams: { c?: string } }) {
+export default async function BoardsPage({ searchParams }: { searchParams: { id?: string; c?: string } }) {
   await syncSharedProgress();
   const load = await loadEverything();
 
@@ -19,9 +19,12 @@ export default async function BoardsPage({ searchParams }: { searchParams: { c?:
     if (title && !squareBooks[r.square_id]) squareBooks[r.square_id] = { title, cover, g1: book?.cover_g1, g2: book?.cover_g2 };
   }
 
-  // Which board to open (persisted via ?c=<template_key>).
+  // Which board to open: ?id=<challenge id>. Two boards can share a template (your own HRCYED and one
+  // you joined), so the template key alone can't say which one. Old ?c=<template_key> links still work.
   const initialId =
-    load.challenges.find((c) => c.template_key === searchParams?.c)?.id ?? load.challenges[0]?.id;
+    load.challenges.find((c) => c.id === searchParams?.id)?.id ??
+    load.challenges.find((c) => c.template_key === searchParams?.c)?.id ??
+    load.challenges[0]?.id;
 
   return (
     <>

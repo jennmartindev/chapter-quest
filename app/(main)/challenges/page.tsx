@@ -50,7 +50,7 @@ export default async function ChallengesPage() {
                   </div>
                 )}
                 <div className="cc-actions">
-                  <Link href={`/boards?c=${c.template_key ?? ""}`} className="open">Open board →</Link>
+                  <Link href={`/boards?id=${c.id}`} className="open">Open board →</Link>
                   {c.user_id === load.userId && <ShareButton challengeId={c.id} />}
                   <span className="cc-actions-end">
                     <ChallengeActions challengeId={c.id} isOwner={c.user_id === load.userId} archived={false} name={c.name} />

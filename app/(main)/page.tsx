@@ -101,7 +101,7 @@ export default async function HomePage() {
                 <div className="bar"><i style={{ width: `${pct}%` }} /></div>
                 <span className="frac">{c.done}/{c.total}</span>
               </div>
-              <Link href="/boards" className="open">Open board →</Link>
+              <Link href={`/boards?id=${c.id}`} className="open">Open board →</Link>
             </div>
           </div>
         );

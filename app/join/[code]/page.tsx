@@ -25,6 +25,5 @@ export default async function JoinPage({ params }: { params: { code: string } })
     );
   }
 
-  const { data: ch } = await supabase.from("challenges").select("template_key").eq("id", cid).single();
-  redirect(`/boards?c=${ch?.template_key ?? ""}`);
+  redirect(`/boards?id=${cid}`);
 }
